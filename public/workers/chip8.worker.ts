@@ -38,6 +38,8 @@ self.onmessage = (e ) => {
         case "LOAD_ROM":
             load_rom(e.data.rom_name);
             break;
+        case "LOAD_ROM_DIRECTLY":
+            load_rom_directly(e.data.rom_data, e.data.rom_size);
         case "KEY_DOWN":
             Module._set_key(e.data.key, 1)
             break;
@@ -48,7 +50,21 @@ self.onmessage = (e ) => {
             console.log("AFG: ", e.data.message)
     }
 }
+async function load_rom_directly(rom_data, rom_size) { 
+    const chipPtr = Module._get_chip_ptr();
+    console.log(rom_data)
+    console.log("before init", Module.HEAPU8.slice(chipPtr + 512,chipPtr + 4096-512));
 
+    Module._chip8_init(chipPtr);
+    console.log("after init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096-512));
+
+     const ptr = Module._malloc(rom_size); // stworzenie przestrzeni na rom
+    Module.HEAPU8.set(rom_data, ptr); // uzycie pamieci
+    Module._load_rom_wasm(rom_size, ptr);
+    Module._free(ptr);
+    console.log("aftr rom ", Module.HEAPU8.slice(chipPtr + 512,chipPtr +  4096-512));
+
+}
 
 async function load_rom(rom_name : string) {
     rom_name = rom_name + ".ch8";

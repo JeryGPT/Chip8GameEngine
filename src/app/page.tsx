@@ -1,11 +1,15 @@
 "use client"
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { ButtonHTMLAttributes, useEffect, useRef, useState } from "react";
 import Editor, { DiffEditor, useMonaco, loader } from '@monaco-editor/react';
+import { useSearchParams } from "next/navigation";
+import { compileCode } from "@/lib/interpreter/assembler";
 export default function Home() {
   const workerRef = useRef<Worker | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
   const screenRef = useRef<HTMLCanvasElement | null>(null);
+  const [userCode, setUserCode] = useState<string>("");
   const KEY_MAP = {
     "1": 0x1, "2": 0x2, "3": 0x3, "4": 0xC,
     "q": 0x4, "w": 0x5, "e": 0x6, "r": 0xD,
@@ -26,6 +30,7 @@ export default function Home() {
       }
     })
   }
+
   function setup_chip_worker(worker : Worker | null) {
     workerRef.current = worker;
     if (!workerRef.current) return;
@@ -71,26 +76,34 @@ export default function Home() {
 
     
   }
-
-
   
   useEffect(() => {
     const worker = new Worker(new URL('../../public/workers/chip8.worker.ts', import.meta.url));
 
-
     setup_chip_worker(worker);
     monitor_keys(worker);
+  
     
-
-
-
-
   }, []);
+
+  
+  function handleRunCode() {
+    const rom = compileCode(userCode);
+    if (!rom || rom.romSize === 0) return;
+    
+    workerRef.current?.postMessage({
+      message: "LOAD_ROM_DIRECTLY", 
+      rom_data: rom.romData, 
+      rom_size: rom.romSize
+    });
+  }
   return (
+
     <div className="flex flex-col flex-1 items-center  justify-center bg-zinc-300 font-sans dark:bg-black">
       <main className="flex flex-1 w-full  flex-col items-center justify-between py-32 bg-white dark:bg-black sm:items-start">
+        <button ref={buttonRef} onClick={handleRunCode}>BUILD AND RUN</button>
         <div className="grid grid-cols-2">
-          <Editor height="80vh" width="48vw" theme="vs-dark" defaultLanguage="rust" defaultValue="// some comment" />
+          <Editor height="80vh" width="48vw" theme="vs-dark" defaultLanguage="rust" defaultValue="// some comment" onChange={(e) => {setUserCode(e); console.log(userCode)}} />
           <canvas ref={screenRef} className="w-[48vw] h-[25vw] border border-white "></canvas>
 
         </div>
