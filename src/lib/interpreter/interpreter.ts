@@ -3,9 +3,10 @@ import { InstructionDef } from "./types/interpreter"
 
 // x, y, nnn, kk
 
-function compileInstruction(instruction : InstructionDef, args: [number]) {
+function compileInstruction(instruction : InstructionDef, args: [number] | null = null) {
   const argsCount = instruction.argsLayout.length;
   let opcode : number = instruction.template;
+  
   instruction.argsLayout.forEach((layout, index) => {
     switch (layout) {
       case ("X"):
@@ -27,7 +28,7 @@ function compileInstruction(instruction : InstructionDef, args: [number]) {
     }
 
   })
-  return opcode;
+  return new Uint8Array([(opcode >> 8) & 0xFF, opcode & 0xFF]);
 
 }
 const instructions: Record<string, InstructionDef> = {
@@ -36,6 +37,23 @@ const instructions: Record<string, InstructionDef> = {
     argsLayout: ["NNN"],
     helper: "Jump to a machine code routine at nnn."
   },
+  "CLS" : {
+    template: 0x00E0,
+    argsLayout: [],
+    helper: "Clear the display.",
+  },
+  "RET" : {
+    template: 0x00EE,
+    argsLayout: [],
+    helper: "Return from a subroutine.",
+  },
+  "JP" : {
+    template: 0x1000,
+    argsLayout: ["NNN"],
+    helper: "Jump to location nnn"
+  }
+
 
 }
 
+console.log(compileInstruction(instructions["JP"], [0xFFF]));
