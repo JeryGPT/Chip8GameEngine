@@ -3,9 +3,21 @@ import { InstructionTokenized } from "./types/tokenizer";
 export function tokenizeCode(code: string) {
   const lines = code.split("\n")
   const instructions : InstructionTokenized[] | [] = [];
-  lines.forEach((rawInstruction) => {
-    rawInstruction = rawInstruction.split(";")[0];
-    const instruction = rawInstruction.trim();
+  const jumpLabels: Record<string, number> = {};
+  const cleanLines : string[] = [];
+  let currentAddr = 0x200;
+  lines.forEach((rawInstruction, idx) => {
+      let instruction = rawInstruction.split(";")[0].trim();
+      if (instruction == "") return;
+      if (instruction.endsWith(":")) {
+        jumpLabels[instruction.slice(0, -1)] = currentAddr;
+      }else{
+        cleanLines.push(instruction);
+        currentAddr += 2;
+      }
+  })
+
+  cleanLines.forEach((instruction) => {
     if (instruction == "") return
     const instructionData : InstructionTokenized = {instructionName: "", args: [], argsTypes: []};
     const instructionName = instruction.split(" ")[0];
@@ -17,6 +29,7 @@ export function tokenizeCode(code: string) {
       .replaceAll(" ", "")
       .split(",")
       .filter(arg => arg != "")
+    
 
 
     args.forEach((arg, index) => {
@@ -26,6 +39,7 @@ export function tokenizeCode(code: string) {
     
         instructionData.args.push(regNum);
         instructionData.argsTypes.push("REGISTER")
+      
       }else if (arg.toUpperCase() == "I"){
         instructionData.args.push(0);
         instructionData.argsTypes.push("INDEX_REGISTER")
@@ -44,7 +58,12 @@ export function tokenizeCode(code: string) {
       }else if (arg.toUpperCase() == "F"){
         instructionData.args.push(0);
         instructionData.argsTypes.push("FONT_SPECIFIER")
+      }else if (jumpLabels[arg] !== undefined) {
+        instructionData.args.push(jumpLabels[arg.trim()])
+        instructionData.argsTypes.push("NUMBER");
+      
       }else if (!isNaN(Number(arg))) {
+      
         instructionData.args.push(Number(arg));
         instructionData.argsTypes.push("NUMBER")
       }

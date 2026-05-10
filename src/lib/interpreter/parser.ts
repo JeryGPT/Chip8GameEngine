@@ -4,7 +4,6 @@ import { InstructionDef } from "./types/interpreter"
 // x, y, nnn, kk
 
 export function compileInstruction(instruction : InstructionDef, args: number[]) {
-  const argsCount = instruction.argsLayout.length;
   
   let opcode : number = instruction.template;
   
