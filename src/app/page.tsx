@@ -88,12 +88,12 @@ export default function Home() {
   }, []);
   return (
     <div className="flex flex-col flex-1 items-center  justify-center bg-zinc-300 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full  flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Editor height="10vh" defaultLanguage="rust" defaultValue="// some comment" />;
+      <main className="flex flex-1 w-full  flex-col items-center justify-between py-32 bg-white dark:bg-black sm:items-start">
+        <div className="grid grid-cols-2">
+          <Editor height="80vh" width="48vw" theme="vs-dark" defaultLanguage="rust" defaultValue="// some comment" />
+          <canvas ref={screenRef} className="w-[48vw] h-[25vw] border border-white "></canvas>
 
-        <canvas ref={screenRef} className="w-[50vw] h-[25vw] border border-white ">
-
-        </canvas>
+        </div>
       </main>
     </div>
   );
