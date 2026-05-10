@@ -1,6 +1,7 @@
 export interface InstructionDef {
-  argsLayout: [string] | []
+  argsLayout: string[] | [];
   template: number;
-  helper?: string 
+  helper?: string;
+  requiredTypes?: string[];
 
 };
