@@ -39,7 +39,7 @@ export function tokenizeCode(code: string) {
     
         instructionData.args.push(regNum);
         instructionData.argsTypes.push("REGISTER")
-      
+    
       }else if (arg.toUpperCase() == "I"){
         instructionData.args.push(0);
         instructionData.argsTypes.push("INDEX_REGISTER")

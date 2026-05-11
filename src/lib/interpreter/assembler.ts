@@ -32,7 +32,7 @@ export function compileCode(code: string) {
     }
     if (!match) {
       console.log(`No instruction ${userInstruction.instructionName} found using argument types: ${userInstruction.argsTypes}`)
-      return -1
+      return;
     }
     compiledInstructions.push(compileInstruction(match, userInstruction.args))
   }) 
