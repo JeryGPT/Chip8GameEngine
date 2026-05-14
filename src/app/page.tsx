@@ -5,6 +5,7 @@ import { ButtonHTMLAttributes, useEffect, useRef, useState } from "react";
 import Editor, { DiffEditor, useMonaco, loader } from '@monaco-editor/react';
 import { useSearchParams } from "next/navigation";
 import { compileCode } from "@/lib/interpreter/assembler";
+import NavBar from "@/components/NavBar";
 export default function Home() {
   const workerRef = useRef<Worker | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -99,15 +100,26 @@ export default function Home() {
   }
   return (
 
-    <div className="flex flex-col flex-1 items-center  justify-center bg-zinc-300 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full  flex-col items-center justify-between py-32 bg-white dark:bg-black sm:items-start">
-        <button ref={buttonRef} onClick={handleRunCode}>BUILD AND RUN</button>
-        <div className="grid grid-cols-2">
-          <Editor height="80vh" width="48vw" theme="vs-dark" defaultLanguage="rust" defaultValue="// some comment" onChange={(e) => {setUserCode(e); console.log(userCode)}} />
-          <canvas ref={screenRef} className="w-[48vw] h-[25vw] border border-white "></canvas>
+    <div className="flex flex-col min-h-screen w-full bg-zinc-300 font-sans dark:bg-black">
+
+      <div className="flex h-full">
+        <NavBar></NavBar>
+    
+      <main className="flex flex-1 w-full h-full flex-col items-center bg-white dark:bg-black sm:items-start">
+        <div className="grid grid-cols-2 h-[100vh] w-full">
+          <div className="bg-zinc-900 flex flex-col min-h-0 i overflow-hidden">
+            <div className="flex justify-between items-center pr-10">
+            <p className="py-2">main.ch8</p>
+            <button ref={buttonRef} className="flex items-center bg-green-600 p-[3px] h-6 rounded-[4px]" onClick={handleRunCode}>BUILD AND RUN</button>
+            </div>
+            <Editor height="100%" className="h-full" width="100%hh" theme="vs-dark" defaultLanguage="rust" defaultValue="// some comment" onChange={(e) => {setUserCode(e || ""); console.log(userCode)}} />
+          </div>
+          <canvas ref={screenRef} className="w-[40vw] h-[25vw] border border-white "></canvas>
 
         </div>
       </main>
+      </div>
+      
     </div>
   );
 }
