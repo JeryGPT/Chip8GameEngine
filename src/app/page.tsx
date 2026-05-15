@@ -5,6 +5,7 @@ import { ButtonHTMLAttributes, useEffect, useRef, useState } from "react";
 import Editor, { DiffEditor, useMonaco, loader } from '@monaco-editor/react';
 import { useSearchParams } from "next/navigation";
 import { compileCode } from "@/lib/interpreter/assembler";
+import { Maximize } from "lucide-react";
 import NavBar from "@/components/NavBar";
 export default function Home() {
   const workerRef = useRef<Worker | null>(null);
@@ -102,20 +103,38 @@ export default function Home() {
 
     <div className="flex flex-col min-h-screen w-full bg-zinc-300 font-sans dark:bg-black">
 
-      <div className="flex h-full">
+      <div className="flex h-full flex-row">
         <NavBar></NavBar>
-    
+
       <main className="flex flex-1 w-full h-full flex-col items-center bg-white dark:bg-black sm:items-start">
         <div className="grid grid-cols-2 h-[100vh] w-full">
           <div className="bg-zinc-900 flex flex-col min-h-0 i overflow-hidden">
             <div className="flex justify-between items-center pr-10">
-            <p className="py-2">main.ch8</p>
+            <p className="py-2 font-semibold pl-3">main.ch8</p>
             <button ref={buttonRef} className="flex items-center bg-green-600 p-[3px] h-6 rounded-[4px]" onClick={handleRunCode}>BUILD AND RUN</button>
             </div>
             <Editor height="100%" className="h-full" width="100%hh" theme="vs-dark" defaultLanguage="rust" defaultValue="// some comment" onChange={(e) => {setUserCode(e || ""); console.log(userCode)}} />
           </div>
-          <canvas ref={screenRef} className="w-[40vw] h-[25vw] border border-white "></canvas>
-
+          <div className="flex flex-col w-full h-full">
+            <div className="w-full h-10 border-l  flex items-center px-4 border-b border-white/15 bg-zinc-900" id="bar">
+              <p>Preview</p>
+            </div>
+            <div className="flex flex-row w-full flex-1">
+              <div className="flex flex-col">
+                <div className="w-[30vw] bg-zinc-900 border-x border-white/15">
+                  <div className="flex flex-row h-8 items-center px-2">
+                    <Maximize className="w-4 h-4 mr-2" />
+                    <p className="text-sm">Fullscreen</p>
+                  </div>
+                </div>
+                <canvas ref={screenRef} className="w-[30vw] h-[15vw] border border-white"></canvas>
+              </div>
+              <div className="flex-1 bg-zinc-900 p-2 border-l h-[17vw] border-white/15">
+                <p>Opcodes:</p>
+              </div>
+            </div>
+          </div>
+          
         </div>
       </main>
       </div>

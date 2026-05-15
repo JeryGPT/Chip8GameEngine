@@ -37,7 +37,7 @@ self.onmessage = (e ) => {
             break
         case "LOAD_ROM":
             load_rom(e.data.rom_name);
-            break;
+            break;                     
         case "LOAD_ROM_DIRECTLY":
             load_rom_directly(e.data.rom_data, e.data.rom_size);
         case "KEY_DOWN":
