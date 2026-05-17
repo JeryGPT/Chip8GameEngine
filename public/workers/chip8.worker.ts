@@ -60,6 +60,7 @@ self.onmessage = (e ) => {
             break;                     
         case "LOAD_ROM_DIRECTLY":
             load_rom_directly(e.data.rom_data, e.data.rom_size);
+            break;
         case "KEY_DOWN":
             Module._set_key(e.data.key, 1)
             break;
@@ -67,7 +68,7 @@ self.onmessage = (e ) => {
             Module._set_key(e.data.key, 0)
             break;
         default: 
-            console.log("AFG: ", e.data.message)
+            console.log("AFG: ", e.data.message);
     }
 }
 async function load_rom_directly(rom_data : Uint8Array, rom_size : number) { 
