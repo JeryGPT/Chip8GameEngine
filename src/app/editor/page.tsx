@@ -11,8 +11,38 @@ export default function Home() {
   const workerRef = useRef<Worker | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const screenRef = useRef<HTMLCanvasElement | null>(null);
-  const [userCode, setUserCode] = useState<string>("");
-  const KEY_MAP = {
+  const opcodesTextRef = useRef<HTMLParagraphElement | null>(null);
+  const [lastOpcodes, setLastOpcodes] = useState<Array<string>>([])
+  const [registers, setRegisters] = useState<Array<number>>([]);
+  const DEFAULT_CODE = `
+LD V1, 5; W
+LD V2, 8; S
+LD V3, 7; A
+LD V4, 9; D
+LD V0, 0; User "character"
+LD V5, 28; X 
+LD V6, 0; Y
+
+main:
+    CLS;
+    LD F, V0; 
+    DRW V5, V6, 5;
+    JP handle_movement;
+
+handle_movement:
+    SKNP V3;
+    ADD V5, 255;
+    SKNP V4;
+    ADD V5, 1;
+    SKNP V1;
+    ADD V6, 255;
+    SKNP V2;
+    ADD V6, 1;
+    JP main;
+`
+  const [userCode, setUserCode] = useState<string>(DEFAULT_CODE);
+
+  const KEY_MAP: Record<string, number> = {
     "1": 0x1, "2": 0x2, "3": 0x3, "4": 0xC,
     "q": 0x4, "w": 0x5, "e": 0x6, "r": 0xD,
     "a": 0x7, "s": 0x8, "d": 0x9, "f": 0xE,
@@ -20,20 +50,35 @@ export default function Home() {
   };
 
   function monitor_keys(worker : Worker) {
-    addEventListener('keydown', (e) => {
-      if (KEY_MAP[e.key.toLowerCase()]){
+    addEventListener('keydown', (e: KeyboardEvent) => {
+      if (KEY_MAP[e.key.toLowerCase()] !== undefined){
         worker.postMessage({message: "KEY_DOWN", key: KEY_MAP[e.key.toLowerCase()]})
       }
     })
 
-    addEventListener('keyup', (e) => {
-      if (KEY_MAP[e.key.toLowerCase()]){
+    addEventListener('keyup', (e: KeyboardEvent) => {
+      if (KEY_MAP[e.key.toLowerCase()] !== undefined){
         worker.postMessage({message: "KEY_UP", key: KEY_MAP[e.key.toLowerCase()]})
       }
     })
   }
 
+  function handle_data_update(regs : number[], opcode : number, pc : number) {
+    setLastOpcodes(prevOpcodes => {
+      if (prevOpcodes.length >= 11) {
+        return [...prevOpcodes.slice(1), "0x" + opcode.toString(16).toUpperCase()];
+      } else {
+        return [...prevOpcodes, "0x" +opcode.toString(16).toUpperCase()];
+      } 
+    });
+    setRegisters(regs);
+    return 0;
+  }
+
+
+
   function setup_chip_worker(worker : Worker | null) {
+    if (worker == null) return;
     workerRef.current = worker;
     if (!workerRef.current) return;
     worker.onmessage = ((e : MessageEvent) => {
@@ -47,31 +92,36 @@ export default function Home() {
         case "RENDER": 
           render_on_screen(e.data.pixels)
           break
+        case "OPCODE":
+          handle_data_update(e.data.registers, e.data.opcode, e.data.pc)
       }
     })
   }
-  function render_on_screen(screen ) {
+  function render_on_screen(screen : number[] ) {
     
     const canvas = screenRef.current;
+    if (canvas == null) return;
     const ctx = canvas.getContext("2d")
+    if (ctx == null) return;
     const WIDTH = 64;
     const HEIGHT = 32;
+    const pixelWidth = canvas.width / WIDTH;
+    const pixelHeight = canvas.height / HEIGHT;
     
     ctx.fillStyle = "white";
     const PIXEL_SIZE = 4
     for (let pixel = 0; pixel < screen.length; pixel ++) {
       const y = Math.floor(pixel / 64) ;
       const x = pixel % 64  ;
-      ctx.strokeStyle = '#ffffffff'
 
       if (screen[pixel]){
         ctx.beginPath();
-        ctx?.fillRect(x * PIXEL_SIZE,y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE)
+        ctx?.fillRect(x * pixelWidth,y * pixelHeight, PIXEL_SIZE, PIXEL_SIZE)
         ctx.stroke();
 
       }else{
         ctx.beginPath();
-        ctx?.clearRect(x * PIXEL_SIZE,y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE)
+        ctx?.clearRect(x * pixelWidth,y * pixelHeight, PIXEL_SIZE, PIXEL_SIZE)
         ctx.stroke();
       }
     }
@@ -80,7 +130,7 @@ export default function Home() {
   }
   
   useEffect(() => {
-    const worker = new Worker(new URL('../../public/workers/chip8.worker.ts', import.meta.url));
+    const worker = new Worker(new URL('../../../public/workers/chip8.worker.ts', import.meta.url));
 
     setup_chip_worker(worker);
     monitor_keys(worker);
@@ -104,7 +154,6 @@ export default function Home() {
     <div className="flex flex-col min-h-screen w-full bg-zinc-300 font-sans dark:bg-black">
 
       <div className="flex h-full flex-row">
-        <NavBar></NavBar>
 
       <main className="flex flex-1 w-full h-full flex-col items-center bg-white dark:bg-black sm:items-start">
         <div className="grid grid-cols-2 h-[100vh] w-full">
@@ -113,12 +162,14 @@ export default function Home() {
             <p className="py-2 font-semibold pl-3">main.ch8</p>
             <button ref={buttonRef} className="flex items-center bg-green-600 p-[3px] h-6 rounded-[4px]" onClick={handleRunCode}>BUILD AND RUN</button>
             </div>
-            <Editor height="100%" className="h-full" width="100%hh" theme="vs-dark" defaultLanguage="rust" defaultValue="// some comment" onChange={(e) => {setUserCode(e || ""); console.log(userCode)}} />
+            <Editor height="100%" className="h-full" width="100%hh" theme="vs-dark" defaultLanguage="rust" defaultValue={DEFAULT_CODE} onChange={(e) => {setUserCode(e || ""); console.log(userCode)}} />
           </div>
           <div className="flex flex-col w-full h-full">
             <div className="w-full h-10 border-l  flex items-center px-4 border-b border-white/15 bg-zinc-900" id="bar">
               <p>Preview</p>
             </div>
+            <div>
+
             <div className="flex flex-row w-full flex-1">
               <div className="flex flex-col">
                 <div className="w-[30vw] bg-zinc-900 border-x border-white/15">
@@ -131,8 +182,32 @@ export default function Home() {
               </div>
               <div className="flex-1 bg-zinc-900 p-2 border-l h-[17vw] border-white/15">
                 <p>Opcodes:</p>
+                  <div className="grid grid-rows-12 h-full">
+                  {
+                    lastOpcodes.map((opcode, i) => <p key={i}>{opcode}</p>)
+                  }
+                  </div>
+              </div>
+              
+            </div>
+            <div className="flex flex-2 bg-zinc-900 w-[30vw] h-[7.5vw] ">
+              <div className="grid grid-rows-2 grid-cols-8">
+               {registers.map((val, i) => (
+                <div key={i} className={`w-[3.75vw] h-[3.75vw] border border-white flex flex-col text-center bg-zinc-900`}>
+                  <div className="w-full items-center text-center bg-black/15 text-[0.7rem]"> V{i}</div>
+                  <p className="mt-[0.3rem]">
+                  {registers[i]}
+                  </p>
+                </div>
+               )
+              )
+              }
+
               </div>
             </div>
+            </div>
+
+            
           </div>
           
         </div>

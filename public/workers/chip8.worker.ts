@@ -1,7 +1,16 @@
 // Definicja typów dla Twoich funkcji z C
+"use client"
+import { register } from "module";
+
 interface Chip8Module extends EmscriptenModule {
     _get_chip_ptr(): number;
     _chip8_tick(): void;
+    _get_registers_ptr(): number;
+    _load_rom_wasm(strPtr: number, size: number): void;
+    _chip8_init(chipPtr: number): void;
+    _set_key(key: number, state: number): void;
+    _set_register(a: number, b: number): void;
+    HEAPU8: Uint8Array;
 }
     console.log("Test")
 
@@ -9,7 +18,7 @@ interface Chip8Module extends EmscriptenModule {
 declare var Module: Chip8Module;
 
 (self as any).Module = {
-    locateFile: (path: string) => path.endsWith('.wasm') ? '/wasm_output.wasm' : path,
+    locateFile: (path: string) => path.endsWith('.wasm') ? '/chip8emulator/wasm_output.wasm' : path,
     onRuntimeInitialized: () => {
         console.log("WASM Ready!");
 
@@ -20,12 +29,23 @@ declare var Module: Chip8Module;
     }
 };
 
-importScripts('/wasm_output.js');
+
+
+
+importScripts('/chip8emulator/wasm_output.js');
+function executedOpcode(opcode : number, pc : number) {
+    let registers_ptr = Module._get_registers_ptr();
+    let registers = [].slice.call(Module.HEAPU8.slice(registers_ptr, registers_ptr+16))
+    self.postMessage({"message" : "OPCODE", registers: registers, opcode: opcode, pc: pc})
+}
+
+(self as any).executedOpcode = executedOpcode;  
 
 console.log("Dostępne funkcje:", {
     load: !!Module._load_rom_wasm,
     tick: !!Module._chip8_tick,
     malloc: !!Module._malloc,
+    get_Registers_ptr: !!Module._get_registers_ptr
 });
 
 let chipAddr: number = 0;
@@ -50,7 +70,7 @@ self.onmessage = (e ) => {
             console.log("AFG: ", e.data.message)
     }
 }
-async function load_rom_directly(rom_data, rom_size) { 
+async function load_rom_directly(rom_data : Uint8Array, rom_size : number) { 
     const chipPtr = Module._get_chip_ptr();
     console.log(rom_data)
     console.log("before init", Module.HEAPU8.slice(chipPtr + 512,chipPtr + 4096-512));

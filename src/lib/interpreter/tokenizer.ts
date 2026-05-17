@@ -2,7 +2,7 @@ import { InstructionTokenized } from "./types/tokenizer";
 
 export function tokenizeCode(code: string) {
   const lines = code.split("\n")
-  const instructions : InstructionTokenized[] | [] = [];
+  const instructions : InstructionTokenized[] = [];
   const jumpLabels: Record<string, number> = {};
   const cleanLines : string[] = [];
   let currentAddr = 0x200;

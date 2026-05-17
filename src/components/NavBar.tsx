@@ -1,6 +1,8 @@
 "use client"
-import { useEffect, useState } from "react";
-import { ArrowLeft, Braces, LucideIcon } from "lucide-react"
+import { useEffect, useState, ReactNode } from "react";
+import { ArrowLeft, Braces, LucideIcon, Book } from "lucide-react"
+import Link from "next/link";
+
 export default function NavBar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   return (
@@ -20,28 +22,47 @@ export default function NavBar() {
 
       </div>
       <Line></Line>
-      <Option
+      <div className="gap-5">
+              <Option
         icon={<Braces/>}
         isCollapsed={isCollapsed}
+        path={"/editor"}
       >
         Editor
       </Option>
+            <Option
+        icon={<Book/>}
+        isCollapsed={isCollapsed}
+        path={"/documentation"}
+      >
+        Documentation
+      </Option>
+      </div>
+
 
     </nav>
 
   )
 }
+
+interface props {
+  isCollapsed: boolean,
+  icon: LucideIcon,
+  children: ReactNode,
+  path: string
+}
+
 function Line() {
   return <div className="bg-white/15 w-full h-[1px] rounded-lg mb-6"></div>
 }
-function Option({isCollapsed , icon, children} : {boolean}) {
+function Option({isCollapsed, icon, children, path} : props) {
   return (
-    <div className="flex flex-row ">
+    <Link href={path} className="flex flex-row group hover:text-blue-400">
       {icon}
-      <p className={`${isCollapsed ? "w-0 opacity-0" : "w-12 opacity-100 ml-3"} transition-all whitespace-nowrap overflow-hidden ease-in duration-150 `}>
+      <p className={`${isCollapsed ? "w-0 opacity-0" : "w-25 opacity-100 ml-3"} group mb-5 transition-all text-[0.9rem] whitespace-nowrap overflow-hidden ease-in duration-150 `}>
         {children}
        </p>
 
-    </div>
+    </Link>
   )
 }
