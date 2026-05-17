@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image";
-import { ButtonHTMLAttributes, useEffect, useRef, useState } from "react";
+import { ButtonHTMLAttributes, useEffect, useRef, useState, FC } from "react";
 import Editor, { DiffEditor, useMonaco, loader } from '@monaco-editor/react';
 import { useSearchParams } from "next/navigation";
 import { compileCode } from "@/lib/interpreter/assembler";
@@ -14,6 +14,27 @@ export default function Home() {
   const opcodesTextRef = useRef<HTMLParagraphElement | null>(null);
   const [lastOpcodes, setLastOpcodes] = useState<Array<string>>([])
   const [registers, setRegisters] = useState<Array<number>>([]);
+
+  interface Itab {
+    id: string,
+    name: string,
+    component: FC<any>
+  }
+
+  const TABS : Itab[] =  [
+    {
+      id : "preview",
+      name: "Preview",
+      component: PreviewTab
+    },
+    {
+      id: "sprites",
+      name: "Sprites editor",
+      component: SpritesEditor
+    }
+  ] 
+  const [tab, setTab] = useState<Itab>(TABS[0]);
+
   const DEFAULT_CODE = `
 LD V1, 5; W
 LD V2, 8; S
@@ -116,12 +137,12 @@ handle_movement:
 
       if (screen[pixel]){
         ctx.beginPath();
-        ctx?.fillRect(x * pixelWidth,y * pixelHeight, PIXEL_SIZE, PIXEL_SIZE)
+        ctx?.fillRect(x * pixelWidth,y * pixelHeight, pixelWidth, pixelHeight)
         ctx.stroke();
 
       }else{
         ctx.beginPath();
-        ctx?.clearRect(x * pixelWidth,y * pixelHeight, PIXEL_SIZE, PIXEL_SIZE)
+        ctx?.clearRect(x * pixelWidth,y * pixelHeight, pixelWidth, pixelHeight)
         ctx.stroke();
       }
     }
@@ -162,15 +183,41 @@ handle_movement:
             <p className="py-2 font-semibold pl-3">main.ch8</p>
             <button ref={buttonRef} className="flex items-center bg-green-600 p-[3px] h-6 rounded-[4px]" onClick={handleRunCode}>BUILD AND RUN</button>
             </div>
-            <Editor height="100%" className="h-full" width="100%hh" theme="vs-dark" defaultLanguage="rust" defaultValue={DEFAULT_CODE} onChange={(e) => {setUserCode(e || ""); console.log(userCode)}} />
+            <Editor height="100%" className="h-full" width="100%" theme="vs-dark" defaultLanguage="rust" defaultValue={DEFAULT_CODE} onChange={(e) => {setUserCode(e || ""); console.log(userCode)}} />
           </div>
           <div className="flex flex-col w-full h-full">
-            <div className="w-full h-10 border-l  flex items-center px-4 border-b border-white/15 bg-zinc-900" id="bar">
-              <p>Preview</p>
+            <div className="w-full h-10 border-l gap-x-4 child:border flex items-center px-4 border-b border-white/15 bg-zinc-900" id="bar">
+              {TABS.map((tab_data, idx) => {
+                return (
+
+                  <p key={tab_data.id} onClick={() => setTab(tab_data)} className={`${tab.id == tab_data.id ? "bg-white/9" : ""} p-2 hover:cursor-pointer`}>{tab_data.name}</p>
+
+                )
+              })}
             </div>
             <div>
+              <tab.component
+                lastOpcodes={lastOpcodes}
+                registers={registers}
+                screenRef={screenRef}
+              />
+            
+            </div>
+            
+          </div>
+          
+        </div>
+      </main>
+      </div>
+      
+    </div>
+  );
+}
 
-            <div className="flex flex-row w-full flex-1">
+function PreviewTab({lastOpcodes, screenRef, registers, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, registers: number[]}) {
+  return (
+    <section>
+    <div className="flex flex-row w-full flex-1">
               <div className="flex flex-col">
                 <div className="w-[30vw] bg-zinc-900 border-x border-white/15">
                   <div className="flex flex-row h-8 items-center px-2">
@@ -180,17 +227,20 @@ handle_movement:
                 </div>
                 <canvas ref={screenRef} className="w-[30vw] h-[15vw] border border-white"></canvas>
               </div>
-              <div className="flex-1 bg-zinc-900 p-2 border-l h-[17vw] border-white/15">
+                <div className="flex-1 bg-zinc-900 p-2 border-l h-[17vw] border-white/15">
                 <p>Opcodes:</p>
                   <div className="grid grid-rows-12 h-full">
                   {
                     lastOpcodes.map((opcode, i) => <p key={i}>{opcode}</p>)
                   }
                   </div>
-              </div>
+                </div>
+
+              
+              
               
             </div>
-            <div className="flex flex-2 bg-zinc-900 w-[30vw] h-[7.5vw] ">
+            <div className="flex flex-2 bg-zinc-900 w-[30v] h-[7.5vw] ">
               <div className="grid grid-rows-2 grid-cols-8">
                {registers.map((val, i) => (
                 <div key={i} className={`w-[3.75vw] h-[3.75vw] border border-white flex flex-col text-center bg-zinc-900`}>
@@ -204,16 +254,26 @@ handle_movement:
               }
 
               </div>
-            </div>
-            </div>
+              <div>
+                <p>System State:</p>
+                <div className="grid grid-cols-2 grid-rows-2 w-full h-full">
 
-            
-          </div>
-          
-        </div>
-      </main>
-      </div>
-      
-    </div>
+                <p>PC: </p>
+                <p>I:</p>
+                <p>DT: </p>
+                <p>ST: </p>
+                </div>
+
+              </div>
+            </div>
+        </section>
   );
+}
+
+function SpritesEditor({lastOpcodes, screenRef, registers, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, registers: number[]}) {
+  return (
+    <div>
+
+    </div>
+  )
 }
