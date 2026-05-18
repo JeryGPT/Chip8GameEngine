@@ -29,6 +29,18 @@ CHIP-8 is a small interpreted virtual machine created in the 1970s by Joseph Wei
 - 16-key hexadecimal keypad
 - Two 60 Hz timers (delay and sound)
 
+
+### Keyboard Mapping
+ 
+The standard CHIP-8 keypad maps as follows:
+  ```
+CHIP-8 Keypad    Computer Keyboard
+1 2 3 C          1 2 3 4
+4 5 6 D     →    Q W E R
+7 8 9 E          A S D F
+A 0 B F          Z X C V
+```
+
 ---
 
 ## 🚀 Quick Start
@@ -53,22 +65,36 @@ CHIP-8 is a small interpreted virtual machine created in the 1970s by Joseph Wei
 ## Project structure
 ```text
 Chip8GameEngine/
+│
+├── public/
+│ ├── chip8emulator/ # WebAssembly emulator core
+│ │ ├── chip8_wasm.c # Original C source (reference)
+│ │ ├── wasm_output.js # Emscripten glue code
+│ │ └── wasm_output.wasm # Compiled WebAssembly binary
+│ │
+│ ├── roms/ # Preloaded Chip-8 games
+│ │ ├── Pong.ch8
+│ │ ├── RPS.ch8
+│ │ ├── invaders.ch8
+│ │ └── octojam.ch8
+│ │
+│ └── workers/ # Web Workers for background execution
+│ ├── chip8.worker.ts # Main Chip-8 worker
+│ └── roms/ # Additional ROM assets (optional)
+│
 ├── src/
-│   ├── app/
-│   │   ├── editor/          # Main editor + emulator interface
-│   │   ├── documentation/   # CHIP-8 reference and guides
-│   │   └── layout.tsx
-│   ├── components/          # Reusable UI components
-│   └── lib/
-│       ├── interpreter/     # Core CHIP-8 logic (TS + WASM)
-│       │   ├── instructions.ts
-│       │   ├── assembler.ts
-│       │   ├── disassembler.ts
-│       │   └── cpu.ts
-│       └── wasm/            # WebAssembly module
-├── public/                  # Static assets
-├── types/                   # TypeScript definitions
-└── package.json
+│ ├── app/
+│ │ ├── editor/ # Main editor + emulator interface
+│ │ ├── documentation/ # CHIP-8 reference & guides
+│ │ └── layout.tsx
+│ │
+│ ├── components/ # Reusable UI components
+│ │
+│ └── lib/interpreter/
+│ ├── instructions.ts
+│ ├── assembler.ts
+│ ├── tokenizer.ts
+│ └── parser.ts
 ```
 ---
 ## 🛠️ Tech Stack
