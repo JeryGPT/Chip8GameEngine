@@ -72,15 +72,14 @@ Chip8GameEngine/
 │ │ ├── wasm_output.js # Emscripten glue code
 │ │ └── wasm_output.wasm # Compiled WebAssembly binary
 │ │
-│ ├── roms/ # Preloaded Chip-8 games
+│ ├── roms/ # Chip-8 games
 │ │ ├── Pong.ch8
 │ │ ├── RPS.ch8
 │ │ ├── invaders.ch8
 │ │ └── octojam.ch8
 │ │
 │ └── workers/ # Web Workers for background execution
-│ ├── chip8.worker.ts # Main Chip-8 worker
-│ └── roms/ # Additional ROM assets (optional)
+│   ├── chip8.worker.ts # Main Chip-8 worker
 │
 ├── src/
 │ ├── app/
