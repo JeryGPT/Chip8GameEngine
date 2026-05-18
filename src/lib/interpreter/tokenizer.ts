@@ -35,7 +35,7 @@ export function tokenizeCode(code: string) {
     args.forEach((arg, index) => {
       if (arg[0].toUpperCase() == "V"){
         //instructionData.args.push(!isNaN(Number(arg.split("V")[1])) ? Number(arg.split("V")[1]) : Number("0x"+ arg.split("V")[1]));
-        const regNum = parseInt(arg.substring(1), 16);
+        const regNum = !isNaN(Number(arg.split("V")[1])) ? Number(arg.split("V")[1]) : parseInt("0x"+ arg.split("V")[1], 16)
     
         instructionData.args.push(regNum);
         instructionData.argsTypes.push("REGISTER")

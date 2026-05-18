@@ -57,9 +57,9 @@ function Line() {
 }
 function Option({isCollapsed, icon, children, path} : props) {
   return (
-    <Link href={path} className="flex flex-row group hover:text-blue-400">
+    <Link href={path} className="flex flex-row group hover:text-zinc-300 font-semibold">
       {icon}
-      <p className={`${isCollapsed ? "w-0 opacity-0" : "w-25 opacity-100 ml-3"} group mb-5 transition-all text-[0.9rem] whitespace-nowrap overflow-hidden ease-in duration-150 `}>
+      <p className={`${isCollapsed ? "w-0 opacity-0" : "w-28 opacity-100 ml-3"} group mb-5 transition-all text-[0.9rem] whitespace-nowrap overflow-hidden ease-in duration-150 `}>
         {children}
        </p>
 

@@ -5,7 +5,7 @@ import { ButtonHTMLAttributes, useEffect, useRef, useState, FC } from "react";
 import Editor, { DiffEditor, useMonaco, loader } from '@monaco-editor/react';
 import { useSearchParams } from "next/navigation";
 import { compileCode } from "@/lib/interpreter/assembler";
-import { Maximize } from "lucide-react";
+import { Maximize, TriangleRight } from "lucide-react";
 import NavBar from "@/components/NavBar";
 export default function Home() {
   const workerRef = useRef<Worker | null>(null);
@@ -48,6 +48,7 @@ main:
     CLS;
     LD F, V0; 
     DRW V5, V6, 5;
+    LD V15, K;
     JP handle_movement;
 
 handle_movement:
@@ -178,10 +179,10 @@ handle_movement:
 
       <main className="flex flex-1 w-full h-full flex-col items-center bg-white dark:bg-black sm:items-start">
         <div className="grid grid-cols-2 h-[100vh] w-full">
-          <div className="bg-zinc-900 flex flex-col min-h-0 i overflow-hidden">
+          <div className="bg-zinc-900 flex flex-col min-h-0 p-0 i overflow-hidden">
             <div className="flex justify-between items-center pr-10">
             <p className="py-2 font-semibold pl-3">main.ch8</p>
-            <button ref={buttonRef} className="flex items-center bg-green-600 p-[3px] h-6 rounded-[4px]" onClick={handleRunCode}>BUILD AND RUN</button>
+            <button ref={buttonRef} className="flex items-center border h-[20px] border-white/15 border-[1px] p-4 text-zinc-200 hover:bg-white duration-250 ease-in-out font-semibold hover:text-zinc-900  h-10 rounded-[4px]" onClick={handleRunCode}> RUN ►</button>
             </div>
             <Editor height="100%" className="h-full" width="100%" theme="vs-dark" defaultLanguage="rust" defaultValue={DEFAULT_CODE} onChange={(e) => {setUserCode(e || ""); console.log(userCode)}} />
           </div>
@@ -190,7 +191,7 @@ handle_movement:
               {TABS.map((tab_data, idx) => {
                 return (
 
-                  <p key={tab_data.id} onClick={() => setTab(tab_data)} className={`${tab.id == tab_data.id ? "bg-white/9" : ""} p-2 hover:cursor-pointer`}>{tab_data.name}</p>
+                  <p key={tab_data.id} onClick={() => setTab(tab_data)} className={`${tab.id == tab_data.id ? "bg-white text-zinc-900" : ""} p-2 font-semibold hover:cursor-pointer`}>{tab_data.name}</p>
 
                 )
               })}
@@ -225,7 +226,7 @@ function PreviewTab({lastOpcodes, screenRef, registers, } : {lastOpcodes: string
                     <p className="text-sm">Fullscreen</p>
                   </div>
                 </div>
-                <canvas ref={screenRef} className="w-[30vw] h-[15vw] border border-white"></canvas>
+                <canvas ref={screenRef} className="w-[30vw] h-[15vw]"></canvas>
               </div>
                 <div className="flex-1 bg-zinc-900 p-2 border-l h-[17vw] border-white/15">
                 <p>Opcodes:</p>
@@ -241,11 +242,11 @@ function PreviewTab({lastOpcodes, screenRef, registers, } : {lastOpcodes: string
               
             </div>
             <div className="flex flex-2 bg-zinc-900 w-[30v] h-[7.5vw] ">
-              <div className="grid grid-rows-2 grid-cols-8">
+              <div className="grid grid-rows-2 w-[30vw] grid-cols-8 p-1 gap-[1px]">
                {registers.map((val, i) => (
-                <div key={i} className={`w-[3.75vw] h-[3.75vw] border border-white flex flex-col text-center bg-zinc-900`}>
-                  <div className="w-full items-center text-center bg-black/15 text-[0.7rem]"> V{i}</div>
-                  <p className="mt-[0.3rem]">
+                <div key={i} className={` rounded-[3px] border border-white/20 hover:text-zinc-900 hover:bg-white duration-125 ease-in-out h-[3.3vw] flex flex-col text-center bg-zinc-900`}>
+                  <div className="w-full group items-center text-center bg-black/15 text-[0.8rem] font-bold"> V{i}</div>
+                  <p className="mt-[0.3rem] group ">
                   {registers[i]}
                   </p>
                 </div>
