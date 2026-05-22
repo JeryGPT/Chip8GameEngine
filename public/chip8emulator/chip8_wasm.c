@@ -153,8 +153,8 @@ void display_screen(char* screen) {
 void run_opcode(Chip8* chip) {
   unsigned short opcode = get_opcode(chip);
   EM_ASM({
-        self.executedOpcode($0, $1);
-  }, opcode, chip->pc);
+        self.executedOpcode($0, $1, $2, $3, $4);
+  }, opcode, chip->pc, chip->delay_timer, chip->sound_timer, chip->I);
   unsigned short T = opcode >> 12;
   unsigned short X = (opcode & 0x0F00) >> 8; // usuwa wszyskto poza 2 segment z ciagu 4 znakow. Jest TXYN i bierze tylko 2 - 0X00, potem jest przesuniete o 8 bitow wiec zostaje 0X czyli to co chce
   unsigned short Y = (opcode & 0x00F0) >> 4;

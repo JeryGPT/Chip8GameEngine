@@ -33,20 +33,15 @@ declare var Module: Chip8Module;
 
 
 importScripts('/chip8emulator/wasm_output.js');
-function executedOpcode(opcode : number, pc : number) {
+function executedOpcode(opcode : number, pc : number, dt: number, st: number, I: number) {
     let registers_ptr = Module._get_registers_ptr();
     let registers = [].slice.call(Module.HEAPU8.slice(registers_ptr, registers_ptr+16))
-    self.postMessage({"message" : "OPCODE", registers: registers, opcode: opcode, pc: pc})
+    self.postMessage({"message" : "OPCODE", registers: registers, opcode: opcode, pc: pc, dt: dt, st: st, I: I})
 }
 
 (self as any).executedOpcode = executedOpcode;  
 
-console.log("Dostępne funkcje:", {
-    load: !!Module._load_rom_wasm,
-    tick: !!Module._chip8_tick,
-    malloc: !!Module._malloc,
-    get_Registers_ptr: !!Module._get_registers_ptr
-});
+
 
 let chipAddr: number = 0;
 self.onmessage = (e ) => {

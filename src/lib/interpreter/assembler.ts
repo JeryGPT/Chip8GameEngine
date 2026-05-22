@@ -34,7 +34,12 @@ export function compileCode(code: string) {
       console.log(`No instruction ${userInstruction.instructionName} found using argument types: ${userInstruction.argsTypes}`)
       return;
     }
-    compiledInstructions.push(compileInstruction(match, userInstruction.args))
+    // check if the called function has it's own compilation function (for custom instructions)
+    if (typeof match.compileFunction === "function") {
+      compiledInstructions.push(match.compileFunction(userInstruction.args))
+    } else {
+      compiledInstructions.push(compileInstruction(match, userInstruction.args))
+    }
   }) 
   const totalLength = compiledInstructions.reduce((acc, curr) => acc + curr.length, 0);
   const finalROM = new Uint8Array(totalLength);

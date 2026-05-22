@@ -3,5 +3,6 @@ export interface InstructionDef {
   template: number;
   helper?: string;
   requiredTypes: string[];
+  compileFunction?: CallableFunction;
 
 };

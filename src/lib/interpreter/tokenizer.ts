@@ -7,13 +7,25 @@ export function tokenizeCode(code: string) {
   const cleanLines : string[] = [];
   let currentAddr = 0x200;
   lines.forEach((rawInstruction, idx) => {
-      let instruction = rawInstruction.split(";")[0].trim();
+      const instruction = rawInstruction.split(";")[0].trim();
       if (instruction == "") return;
       if (instruction.endsWith(":")) {
         jumpLabels[instruction.slice(0, -1)] = currentAddr;
+      
       }else{
+        const instruction = rawInstruction.split(";")[0].trim();
+        if (instruction == "") return;
         cleanLines.push(instruction);
-        currentAddr += 2;
+        let parts = instruction.split(" ");
+        const name = parts[0].toUpperCase();
+        if (name === "DB") {
+          // DB directive takes 1 byte per argument element
+          const elementCount = instruction.replace(name, "").trim().replace(" ", "").split(",").length;
+          console.log("ELEMENT COUNTL ", elementCount)
+          currentAddr += elementCount;
+        } else {
+          currentAddr += 2;
+        }
       }
   })
 
@@ -70,6 +82,7 @@ export function tokenizeCode(code: string) {
       
     })
     instructions.push(instructionData);
+    console.log(instructionData)
 
   })
   return instructions

@@ -7,13 +7,20 @@ import { useSearchParams } from "next/navigation";
 import { compileCode } from "@/lib/interpreter/assembler";
 import { Maximize, TriangleRight } from "lucide-react";
 import NavBar from "@/components/NavBar";
+  interface ISystemState  {
+    "pc" : number,
+    "registers" : number[],
+    "delay_timer" : number,
+    "sound_timer" : number,
+    "I" : number
+  }
 export default function Home() {
   const workerRef = useRef<Worker | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const screenRef = useRef<HTMLCanvasElement | null>(null);
   const opcodesTextRef = useRef<HTMLParagraphElement | null>(null);
   const [lastOpcodes, setLastOpcodes] = useState<Array<string>>([])
-  const [registers, setRegisters] = useState<Array<number>>([]);
+
 
   interface Itab {
     id: string,
@@ -33,21 +40,27 @@ export default function Home() {
       component: SpritesEditor
     }
   ] 
+
+
   const [tab, setTab] = useState<Itab>(TABS[0]);
+  const [systemState, setSystemState] = useState<ISystemState>({registers: [0], pc: 0, delay_timer: 0, sound_timer: 0, I: 0})
+
 
   const DEFAULT_CODE = `
+
 LD V1, 5; W
 LD V2, 8; S
 LD V3, 7; A
 LD V4, 9; D
 LD V0, 0; User "character"
-LD V5, 28; X 
-LD V6, 0; Y
+RND V5, 0xFF; random X (max 255)
+RND V6, 0xFF; random Y (max 255)
+
+JP load_sprite;
 
 main:
     CLS;
-    LD F, V0; 
-    DRW V5, V6, 5;
+    DRW V5, V6, 8;
     LD V15, K;
     JP handle_movement;
 
@@ -61,6 +74,15 @@ handle_movement:
     SKNP V2;
     ADD V6, 1;
     JP main;
+
+load_sprite:
+    LD I, sprite;
+    JP main;
+
+
+sprite:
+    DB 0x70, 0x70, 0x20, 0x70, 0xA8, 0x20, 0x50, 0x50;
+
 `
   const [userCode, setUserCode] = useState<string>(DEFAULT_CODE);
 
@@ -85,7 +107,7 @@ handle_movement:
     })
   }
 
-  function handle_data_update(regs : number[], opcode : number, pc : number) {
+  function handle_data_update(regs : number[], opcode : number, pc : number, dt: number, st: number, I: number) {
     setLastOpcodes(prevOpcodes => {
       if (prevOpcodes.length >= 11) {
         return [...prevOpcodes.slice(1), "0x" + opcode.toString(16).toUpperCase()];
@@ -93,7 +115,7 @@ handle_movement:
         return [...prevOpcodes, "0x" +opcode.toString(16).toUpperCase()];
       } 
     });
-    setRegisters(regs);
+    setSystemState({registers: regs, pc: pc, delay_timer: dt, sound_timer: st, I: I})
     return 0;
   }
 
@@ -115,7 +137,7 @@ handle_movement:
           render_on_screen(e.data.pixels)
           break
         case "OPCODE":
-          handle_data_update(e.data.registers, e.data.opcode, e.data.pc)
+          handle_data_update(e.data.registers, e.data.opcode, e.data.pc, e.data.dt, e.data.st, e.data.I)
       }
     })
   }
@@ -199,7 +221,7 @@ handle_movement:
             <div>
               <tab.component
                 lastOpcodes={lastOpcodes}
-                registers={registers}
+                systemState={systemState}
                 screenRef={screenRef}
               />
             
@@ -215,7 +237,7 @@ handle_movement:
   );
 }
 
-function PreviewTab({lastOpcodes, screenRef, registers, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, registers: number[]}) {
+function PreviewTab({lastOpcodes, screenRef, systemState, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, systemState: ISystemState}) {
   return (
     <section>
     <div className="flex flex-row w-full flex-1">
@@ -241,13 +263,13 @@ function PreviewTab({lastOpcodes, screenRef, registers, } : {lastOpcodes: string
               
               
             </div>
-            <div className="flex flex-2 bg-zinc-900 w-[30v] h-[7.5vw] ">
+            <div className="flex flex-2 bg-zinc-900 w-full h-[7.5vw] ">
               <div className="grid grid-rows-2 w-[30vw] grid-cols-8 p-1 gap-[1px]">
-               {registers.map((val, i) => (
-                <div key={i} className={` rounded-[3px] border border-white/20 hover:text-zinc-900 hover:bg-white duration-125 ease-in-out h-[3.3vw] flex flex-col text-center bg-zinc-900`}>
+               {systemState.registers.map((val, i) => (
+                <div key={i} onClick={() => {navigator.clipboard.writeText(systemState.registers[i].toString())}}  className={`active:bg-white/70 rounded-[3px] border border-white/20 hover:text-zinc-900 hover:bg-white duration-125 ease-in-out h-[3.3vw] flex flex-col text-center bg-zinc-900`}>
                   <div className="w-full group items-center text-center bg-black/15 text-[0.8rem] font-bold"> V{i}</div>
                   <p className="mt-[0.3rem] group ">
-                  {registers[i]}
+                  {systemState.registers[i]}
                   </p>
                 </div>
                )
@@ -255,26 +277,53 @@ function PreviewTab({lastOpcodes, screenRef, registers, } : {lastOpcodes: string
               }
 
               </div>
-              <div>
-                <p>System State:</p>
-                <div className="grid grid-cols-2 grid-rows-2 w-full h-full">
+              <div className="flex-1 text-white bg-zinc-900">
+                <div className="grid grid-cols-2 gap-2  text-sm mt-[3px]">
 
-                <p>PC: </p>
-                <p>I:</p>
-                <p>DT: </p>
-                <p>ST: </p>
+                  <div className="bg-black/20 p-1 rounded border border-white/20">
+                    <span className="text-xs text-white block font-bold">PC</span>
+                    <p className="font-mono text-base">{systemState.pc}</p>
+                  </div>
+                  <div className="bg-black/20 p-1 rounded border border-white/20">
+                    <span className="text-xs text-white block font-bold">I</span>
+                    <p className="font-mono text-base">0x{systemState.I.toString(16).toUpperCase()}</p>
+                  </div>
+                  <div className="bg-black/20 p-1 rounded border border-white/20">
+                    <span className="text-xs text-white block font-bold">DT (Delay)</span>
+                    <p className="font-mono text-base">{systemState.delay_timer}</p>
+                  </div>
+                  <div className="bg-black/20 p-1 rounded border border-white/20">
+                    <span className="text-xs text-white block font-bold">ST (Sound)</span>
+                    <p className="font-mono text-base">{systemState.sound_timer}</p>
+                  </div>
+
                 </div>
-
               </div>
             </div>
         </section>
   );
 }
 
-function SpritesEditor({lastOpcodes, screenRef, registers, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, registers: number[]}) {
+function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, systemState: ISystemState}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  
+  function drawGrid() {
+    const canvas = canvasRef.current;
+    
+    if (canvas == null) return;
+    const ctx = canvas.ctx;
+    
+
+  }
+  useEffect(() => {
+    drawGrid(canvasRef.current)
+  }, [])
+
   return (
     <div>
+      <canvas ref={canvasRef} width={30} height={40}>
 
+      </canvas>
     </div>
   )
 }

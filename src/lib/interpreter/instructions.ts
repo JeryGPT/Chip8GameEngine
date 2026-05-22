@@ -1,5 +1,5 @@
 import { InstructionDef } from "./types/interpreter";
-
+import { compileDB } from "./compileFunctions"
 export const instructions: Record<string, InstructionDef[]> = {
   "SYS": [{
     template: 0x0000,
@@ -220,5 +220,13 @@ export const instructions: Record<string, InstructionDef[]> = {
     argsLayout: ["X"],
     requiredTypes: ["REGISTER"],
     helper: "Skip next instruction if key with the value of Vx is not pressed."
-  }]
+  }],
+  "DB" : [
+    {
+      template: 0x0,
+      argsLayout: ["NUMBER*"],
+      requiredTypes: ["NUMBER*"],
+      compileFunction: compileDB
+    }
+  ]
 };

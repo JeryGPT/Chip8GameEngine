@@ -4341,7 +4341,7 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('onSbrkGrow');
 }
 var ASM_CONSTS = {
-  68992: ($0, $1) => { self.executedOpcode($0, $1); }
+  68992: ($0, $1, $2, $3, $4) => { self.executedOpcode($0, $1, $2, $3, $4); }
 };
 
 // Imports from the Wasm binary.
