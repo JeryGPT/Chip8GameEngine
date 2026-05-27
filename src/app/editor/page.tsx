@@ -450,7 +450,7 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
     <div>
       <div className="flex text-center flex-row">
 
-        <canvas ref={canvasRef} onMouseUp={(e) => {handleMouse(e, false)}} onMouseDown={(e) => {handleMouse(e, true)}} onMouseMove={handleMouseMove} width={8 * 20} height={spriteHeight * 20} className="bg-red-400">
+        <canvas ref={canvasRef} onMouseLeave={(e) => handleMouse(e, false)} onMouseUp={(e) => {handleMouse(e, false)}} onMouseDown={(e) => {handleMouse(e, true)}} onMouseMove={handleMouseMove} width={8 * 20} height={spriteHeight * 20} className="bg-red-400">
 
         </canvas>
         <div onClick={() => {navigator.clipboard.writeText(hexText)}} className="flex group hover:cursor-pointer  flex-col">
