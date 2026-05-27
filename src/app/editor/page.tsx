@@ -5,7 +5,7 @@ import { ButtonHTMLAttributes, useEffect, useRef, useState, FC } from "react";
 import Editor, { DiffEditor, useMonaco, loader } from '@monaco-editor/react';
 import { useSearchParams } from "next/navigation";
 import { compileCode } from "@/lib/interpreter/assembler";
-import { Maximize, TriangleRight } from "lucide-react";
+import { ArrowDown, ArrowUp, Maximize, TriangleRight } from "lucide-react";
 import NavBar from "@/components/NavBar";
   interface ISystemState  {
     "pc" : number,
@@ -306,24 +306,173 @@ function PreviewTab({lastOpcodes, screenRef, systemState, } : {lastOpcodes: stri
 
 function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, systemState: ISystemState}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  
+  const [spriteHeight, setSpriteHeight] = useState<number>(15);
+  const [spriteData, setSpriteData] = useState<boolean[]>(new Array(15*8).fill(0));
+  const [isMouseDown, setIsMouseDown] = useState<boolean>(false)
+  const [lastChangedI, setLastChangedI] = useState<number | null>(null)
+  const [hexText, setHexText] = useState<string>("")
+      const WIDTH = 8;
+    const HEIGHT = 15;
+
   function drawGrid() {
     const canvas = canvasRef.current;
     
-    if (canvas == null) return;
-    const ctx = canvas.ctx;
+    if (canvas === null) return;
+    const ctx = canvas.getContext("2d");
+    const pixelWidth = canvas.width / WIDTH;
+    const pixelHeight = canvas.height / HEIGHT;
     
+    ctx.fillStyle = "white";
+    ctx?.beginPath();
+    const PIXEL_SIZE = 4
+    for (let x = 0; x < WIDTH; x++){
+      ctx?.moveTo(x * pixelWidth, 0)
+      ctx?.lineTo(x * pixelWidth, pixelHeight * HEIGHT)
+      ctx?.stroke();
+    }
 
+    for (let y = 0; y < HEIGHT; y++) {
+      ctx?.moveTo(0, y * pixelHeight)
+      ctx?.lineTo(WIDTH * pixelWidth, y * pixelHeight)
+      ctx?.stroke();
+    }
   }
+  function cutHexData(hexData) {
+    if (hexData.length === 0 || hexData.at(-1) > 0) {
+      return hexData;
+    }
+    return cutHexData(hexData.slice(0, -1))
+  }
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    
+    if (canvas === null) return;
+    const ctx = canvas.getContext("2d");
+    const pixelWidth = canvas.width / WIDTH;
+    const pixelHeight = canvas.height / HEIGHT;
+    let hexData = [] // 8 hexes
+
+    for ( let i = 0; i < HEIGHT; i ++) {
+      let byte = 0
+      for (let bit = 0; bit < 8; bit ++ ) {
+        if (spriteData[i * 8 + bit]) {
+          byte |= (1 << bit)
+          
+        }
+        
+      }
+
+      hexData.push("0x" + byte.toString(16))
+
+    }
+    
+    
+    hexData = cutHexData(hexData)
+
+    for (let i = 0; i < spriteData.length; i++) {
+      ctx.fillStyle = "red";
+
+      if (spriteData[i]) {
+        ctx.fillStyle = "white";
+        
+      }
+
+      const x = i % WIDTH;
+      const y = Math.floor(i / WIDTH);
+
+      ctx.fillRect(x * pixelWidth + 1, y * pixelHeight + 1, pixelWidth - 2, pixelHeight - 2);
+    }
+
+    setHexText(hexData.join(", "))
+
+    
+  }, [spriteData])
+
+  function handleMouseMove(e) {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left + 1;
+    const y = e.clientY - rect.top + 1;
+    const canvas = canvasRef.current;
+
+    
+    if (canvas === null) return;
+    const ctx = canvas.getContext("2d");
+    const pixelWidth = canvas.width / WIDTH;
+    const pixelHeight = canvas.height / HEIGHT;
+    console.log(`PIXE: x: ${Math.floor(x/pixelWidth)} ; y: ${Math.floor(y/pixelHeight)}`)
+    if (isMouseDown) {
+      let calc_x = Math.floor(x/pixelWidth) 
+      let calc_y = Math.floor(y/pixelHeight) 
+      
+      const new_arr = [...spriteData] ;
+      const idx = calc_x + calc_y * WIDTH
+      if (lastChangedI == idx ) return
+      new_arr[idx] = !new_arr[idx];
+      setLastChangedI(idx)
+      setSpriteData(new_arr)
+      console.log("DRAW", calc_x, calc_y)
+    }
+  }
+
+  function handleMouse(e, isDown : boolean) {
+    setIsMouseDown(isDown);
+    if (!isDown) return
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return
+    const x = e.clientX - rect.left + 1;
+    const y = e.clientY - rect.top + 1;
+    const canvas = canvasRef.current;
+
+
+    
+    if (canvas === null) return;
+    const ctx = canvas.getContext("2d");
+    const pixelWidth = canvas.width / WIDTH;
+    const pixelHeight = canvas.height / HEIGHT;
+    const calc_x =Math.floor(x/ pixelWidth);
+    const calc_y = Math.floor(y / pixelWidth);
+    const idx = calc_x + calc_y * WIDTH
+    setLastChangedI(idx);
+
+    const new_arr = [...spriteData];
+    new_arr[idx] = !new_arr[idx];
+    setSpriteData(new_arr);
+
+    
+  }
+  
   useEffect(() => {
     drawGrid(canvasRef.current)
   }, [])
 
   return (
     <div>
-      <canvas ref={canvasRef} width={30} height={40}>
+      <div className="flex text-center flex-row">
 
-      </canvas>
+        <canvas ref={canvasRef} onMouseUp={(e) => {handleMouse(e, false)}} onMouseDown={(e) => {handleMouse(e, true)}} onMouseMove={handleMouseMove} width={8 * 20} height={spriteHeight * 20} className="bg-red-400">
+
+        </canvas>
+        <div onClick={() => {navigator.clipboard.writeText(hexText)}} className="flex group hover:cursor-pointer  flex-col">
+          <p className="group">HEX (click to copy):</p>
+          <p className="group">{hexText}</p>
+        </div>
+      </div>
+              <button>
+          <p className="text-[1.4rem]">Create new sprite</p>
+        </button >              <button onClick={() => setSpriteData((new Array(8*15)).fill(0))}>
+          <p className="text-[1.4rem]">Clear</p>
+        </button>
+      <div>
+        <p>Sprites list:</p>
+        <div>
+          <div>
+            <p>Sprite Name</p>
+            <button>Load sprite into editor</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   )
 }
