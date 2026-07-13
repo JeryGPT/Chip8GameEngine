@@ -14,9 +14,15 @@ function arraysEqual(a : string[], b : string[]) {
 
 export function compileCode(code: string) {
   console.log("COPILING: ", code)
-  const tokenizedInstructions: InstructionTokenized[] = tokenizeCode(code);
+  const tokenizedData = tokenizeCode(code);
+  if (tokenizedData.success < 0) return {tokenizedData};
+  const tokenizedInstructions: InstructionTokenized[] = tokenizedData.data
 
   const compiledInstructions : Uint8Array[] = [];
+
+  tokenizedInstructions.forEach((userInstruction, index) => {
+    
+  })
 
   tokenizedInstructions.forEach((userInstruction, index) => {
     const foundInstructions : InstructionDef[] = instructions[userInstruction.instructionName];

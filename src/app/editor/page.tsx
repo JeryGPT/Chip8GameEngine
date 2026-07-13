@@ -7,6 +7,8 @@ import { useSearchParams } from "next/navigation";
 import { compileCode } from "@/lib/interpreter/assembler";
 import { ArrowDown, ArrowUp, Maximize, TriangleRight } from "lucide-react";
 import NavBar from "@/components/NavBar";
+import { env } from "process";
+import { createNewProject, getProject, saveProject, getAllProjectIds, saveSprite } from "@/lib/projects_manager/manageEnv";
   interface ISystemState  {
     "pc" : number,
     "registers" : number[],
@@ -153,13 +155,14 @@ sprite:
     const pixelHeight = canvas.height / HEIGHT;
     
     ctx.fillStyle = "white";
+    ctx.beginPath();
     const PIXEL_SIZE = 4
     for (let pixel = 0; pixel < screen.length; pixel ++) {
       const y = Math.floor(pixel / 64) ;
       const x = pixel % 64  ;
 
       if (screen[pixel]){
-        ctx.beginPath();
+        
         ctx?.fillRect(x * pixelWidth,y * pixelHeight, pixelWidth, pixelHeight)
         ctx.stroke();
 
@@ -178,6 +181,13 @@ sprite:
 
     setup_chip_worker(worker);
     monitor_keys(worker);
+    const project_id = createNewProject("Project 1", "123");
+    saveSprite(project_id , {
+      id: "123",
+      name: "test",
+      description: "test",
+      data: "0x70, 0x70, 0x20, 0x70, 0xA8, 0x20, 0x50, 0x50"
+    })
   
     
   }, []);
@@ -185,6 +195,7 @@ sprite:
   
   function handleRunCode() {
     const rom = compileCode(userCode);
+    console.log("RON: " , rom)
     if (!rom || rom.romSize === 0) return;
     
     workerRef.current?.postMessage({
@@ -311,6 +322,9 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
   const [isMouseDown, setIsMouseDown] = useState<boolean>(false)
   const [lastChangedI, setLastChangedI] = useState<number | null>(null)
   const [hexText, setHexText] = useState<string>("")
+  const spriteNameRef = useRef<HTMLInputElement | null>(null) 
+  const spriteDescRef = useRef<HTMLInputElement | null>(null) 
+
       const WIDTH = 8;
     const HEIGHT = 15;
 
@@ -446,17 +460,44 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
     drawGrid(canvasRef.current)
   }, [])
 
+  function saveSprite() {
+    const spriteName = spriteNameRef.current?.value;
+    const spriteDesc = spriteDescRef.current?.value;
+    localStorage.setItem("project_env", project_env)
+  }
+
   return (
     <div>
-      <div className="flex text-center flex-row">
+      <div className="flex text-center flex-row bg-zinc-900 p-3">
 
         <canvas ref={canvasRef} onMouseLeave={(e) => handleMouse(e, false)} onMouseUp={(e) => {handleMouse(e, false)}} onMouseDown={(e) => {handleMouse(e, true)}} onMouseMove={handleMouseMove} width={8 * 20} height={spriteHeight * 20} className="bg-red-400">
 
         </canvas>
-        <div onClick={() => {navigator.clipboard.writeText(hexText)}} className="flex group hover:cursor-pointer  flex-col">
-          <p className="group">HEX (click to copy):</p>
-          <p className="group">{hexText}</p>
-        </div>
+          <div className="">
+          <div onClick={() => {navigator.clipboard.writeText(hexText)}} className=" bg-zinc-950 flex group hover:cursor-pointer h-1/3 w-2/3  flex-col">
+            <p className="group ">HEX (click to copy):</p>
+            <p className="group w-full">{hexText}</p>
+          </div>
+          <div className="flex flex-col w-2/3 items- p-2 gap-2">
+            <label className="flex flex-col items-start font-semibold">
+              <p>
+                Sprite name:
+              </p>
+              <input ref={spriteNameRef} className="p-2 border border-white/40 border-1 text-white/80 font-semibold w-40 h-8 bg-zinc-950 italic font-normal text-[0.8rem]" placeholder="Sprite name"></input>
+            </label>
+            <label className="flex flex-col items-start font-semibold">
+
+              <p>
+                Sprite desc:
+              </p>
+              <input ref={spriteDescRef} className="p-2 border border-white/40 border-1 text-white/80 font-semibold w-40 h-8 bg-zinc-950 italic font-normal text-[0.8rem]" placeholder="Sprite description"></input>
+
+            </label>
+            <label>
+              <button onClick={saveSprite}>Save sprite</button>
+            </label>
+          </div>
+          </div>
       </div>
               <button>
           <p className="text-[1.4rem]">Create new sprite</p>
