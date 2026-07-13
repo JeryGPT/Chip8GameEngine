@@ -9,6 +9,7 @@ import { ArrowDown, ArrowUp, Maximize, TriangleRight } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { env } from "process";
 import { createNewProject, getProject, saveProject, getAllProjectIds, saveSprite } from "@/lib/projects_manager/manageEnv";
+import { registerChip8Language } from "@/lib/editor/chip8Language";
   interface ISystemState  {
     "pc" : number,
     "registers" : number[],
@@ -22,6 +23,13 @@ export default function Home() {
   const screenRef = useRef<HTMLCanvasElement | null>(null);
   const opcodesTextRef = useRef<HTMLParagraphElement | null>(null);
   const [lastOpcodes, setLastOpcodes] = useState<Array<string>>([])
+  const monaco = useMonaco();
+
+  useEffect(() => {
+    if (monaco) {
+      registerChip8Language(monaco);
+    }
+  }, [monaco]);
 
 
   interface Itab {
@@ -217,7 +225,7 @@ sprite:
             <p className="py-2 font-semibold pl-3">main.ch8</p>
             <button ref={buttonRef} className="flex items-center border h-[20px] border-white/15 border-[1px] p-4 text-zinc-200 hover:bg-white duration-250 ease-in-out font-semibold hover:text-zinc-900  h-10 rounded-[4px]" onClick={handleRunCode}> RUN ►</button>
             </div>
-            <Editor height="100%" className="h-full" width="100%" theme="vs-dark" defaultLanguage="rust" defaultValue={DEFAULT_CODE} onChange={(e) => {setUserCode(e || ""); console.log(userCode)}} />
+            <Editor height="100%" className="h-full" width="100%" theme="vs-dark" defaultLanguage="chip8" defaultValue={DEFAULT_CODE} onChange={(e) => {setUserCode(e || ""); console.log(userCode)}} />
           </div>
           <div className="flex flex-col w-full h-full">
             <div className="w-full h-10 border-l gap-x-4 child:border flex items-center px-4 border-b border-white/15 bg-zinc-900" id="bar">
