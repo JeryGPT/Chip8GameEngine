@@ -1,4 +1,3 @@
-import { off } from "process";
 import { InstructionTokenized } from "./types/tokenizer";
 
 export function compileDB(args: number[]): Uint8Array {

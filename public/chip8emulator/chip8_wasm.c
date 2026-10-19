@@ -55,6 +55,7 @@ int load_rom_wasm(int rom_size, unsigned char rom_data[]) {
     printf("[Error] Couldn't load the ROM to the memory (OOM)");
     return -1;
   }else{
+    memset(&chip.memory[0x200], 0, 4096-512);
     memcpy(&chip.memory[0x200], rom_data, rom_size);
     printf("[+] ROM loaded via WASM: %d bytes\n", rom_size);
   }

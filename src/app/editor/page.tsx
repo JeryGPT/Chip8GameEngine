@@ -8,7 +8,7 @@ import { compileCode } from "@/lib/interpreter/assembler";
 import { ArrowDown, ArrowUp, Maximize, TriangleRight } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { env } from "process";
-import { createNewProject, getProject, saveProject, getAllProjectIds, saveSprite } from "@/lib/projects_manager/manageEnv";
+import { createNewProject, getProject, saveProject, getAllProjectIds, saveSprite, getSprites } from "@/lib/projects_manager/manageEnv";
 import { registerChip8Language } from "@/lib/editor/chip8Language";
   interface ISystemState  {
     "pc" : number,
@@ -192,8 +192,8 @@ sprite:
     const project_id = createNewProject("Project 1", "123");
     saveSprite(project_id , {
       id: "123",
-      name: "test",
-      description: "test",
+      name: "character",
+      description: "character",
       data: "0x70, 0x70, 0x20, 0x70, 0xA8, 0x20, 0x50, 0x50"
     })
   
@@ -333,8 +333,8 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
   const spriteNameRef = useRef<HTMLInputElement | null>(null) 
   const spriteDescRef = useRef<HTMLInputElement | null>(null) 
 
-      const WIDTH = 8;
-    const HEIGHT = 15;
+  const WIDTH = 8;
+  const HEIGHT = 15;
 
   function drawGrid() {
     const canvas = canvasRef.current;
@@ -475,53 +475,51 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
   }
 
   return (
-    <div>
-      <div className="flex text-center flex-row bg-zinc-900 p-3">
-
-        <canvas ref={canvasRef} onMouseLeave={(e) => handleMouse(e, false)} onMouseUp={(e) => {handleMouse(e, false)}} onMouseDown={(e) => {handleMouse(e, true)}} onMouseMove={handleMouseMove} width={8 * 20} height={spriteHeight * 20} className="bg-red-400">
-
-        </canvas>
-          <div className="">
-          <div onClick={() => {navigator.clipboard.writeText(hexText)}} className=" bg-zinc-950 flex group hover:cursor-pointer h-1/3 w-2/3  flex-col">
-            <p className="group ">HEX (click to copy):</p>
-            <p className="group w-full">{hexText}</p>
-          </div>
-          <div className="flex flex-col w-2/3 items- p-2 gap-2">
-            <label className="flex flex-col items-start font-semibold">
-              <p>
-                Sprite name:
-              </p>
-              <input ref={spriteNameRef} className="p-2 border border-white/40 border-1 text-white/80 font-semibold w-40 h-8 bg-zinc-950 italic font-normal text-[0.8rem]" placeholder="Sprite name"></input>
-            </label>
-            <label className="flex flex-col items-start font-semibold">
-
-              <p>
-                Sprite desc:
-              </p>
-              <input ref={spriteDescRef} className="p-2 border border-white/40 border-1 text-white/80 font-semibold w-40 h-8 bg-zinc-950 italic font-normal text-[0.8rem]" placeholder="Sprite description"></input>
-
-            </label>
-            <label>
-              <button onClick={saveSprite}>Save sprite</button>
-            </label>
-          </div>
-          </div>
-      </div>
-              <button>
-          <p className="text-[1.4rem]">Create new sprite</p>
-        </button >              <button onClick={() => setSpriteData((new Array(8*15)).fill(0))}>
-          <p className="text-[1.4rem]">Clear</p>
-        </button>
-      <div>
-        <p>Sprites list:</p>
+      <div className="flex flex-col">
         <div>
-          <div>
-            <p>Sprite Name</p>
-            <button>Load sprite into editor</button>
+        <div className="flex flex-row gap-4 bg-zinc-900 p-4 border-l border-white/15">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold">Canvas</p>
+              <span className="text-xs text-zinc-400 font-mono">{WIDTH} x {HEIGHT} px</span>
+            </div>
+            <canvas ref={canvasRef} onMouseLeave={(e) => handleMouse(e, false)} onMouseUp={(e) => {handleMouse(e, false)}} onMouseDown={(e) => {handleMouse(e, true)}} onMouseMove={handleMouseMove} width={8 * 20} height={spriteHeight * 20} className="bg-red-400 rounded-[4px] border border-white/15 cursor-crosshair select-none">
+
+            </canvas>
+            <p className="text-xs text-zinc-400">Click or drag to toggle pixels.</p>
           </div>
+
+          <div className="flex flex-1 flex-col gap-4 min-w-0">
+            <div onClick={() => {navigator.clipboard.writeText(hexText)}} className="group flex flex-col gap-2 p-3 bg-zinc-950 border border-white/15 rounded-[4px] hover:cursor-pointer hover:bg-white hover:text-zinc-900 active:bg-white/70 duration-250 ease-in-out">
+              <div className="flex items-center justify-between">
+                <p className="font-semibold">HEX</p>
+                <span className="text-xs opacity-60">click to copy</span>
+              </div>
+              <p className="font-mono text-sm break-words min-h-[3rem] bg-black/20 rounded border border-white/20 p-2 group-hover:border-zinc-900/30">
+                {hexText || "0x0"}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 p-3 bg-black/20 border border-white/15 rounded-[4px]">
+              <label className="flex flex-col gap-1">
+                <span className="text-sm font-semibold">Sprite Name</span>
+                <input ref={spriteNameRef} placeholder="e.g. player" className="w-full h-9 px-2 bg-zinc-950 text-zinc-200 border border-white/15 rounded-[4px] outline-none focus:border-white duration-250 ease-in-out" />
+              </label>
+
+              <label className="flex flex-col gap-1">
+                <span className="text-sm font-semibold">Sprite Description</span>
+                <input ref={spriteDescRef} placeholder="What is this sprite?" className="w-full h-9 px-2 bg-zinc-950 text-zinc-200 border border-white/15 rounded-[4px] outline-none focus:border-white duration-250 ease-in-out" />
+              </label>
+              <button onClick={saveSprite} className="w-full h-9 bg-white text-zinc-900 font-semibold rounded-[4px] hover:bg-white/90 active:bg-white/70 duration-250 ease-in-out">Save Sprite</button>
+            </div>
+          </div>
+
         </div>
       </div>
-
+      <div>
+        d
+      </div>
     </div>
   )
 }
+  

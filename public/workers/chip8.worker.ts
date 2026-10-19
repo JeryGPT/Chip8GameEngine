@@ -12,9 +12,8 @@ interface Chip8Module extends EmscriptenModule {
     _set_register(a: number, b: number): void;
     HEAPU8: Uint8Array;
 }
-    console.log("Test")
+console.log("Test")
 
-// Emscripten wrzuca 'Module' do globalnego zakresu w Workerze
 declare var Module: Chip8Module;
 
 (self as any).Module = {
@@ -22,7 +21,7 @@ declare var Module: Chip8Module;
     onRuntimeInitialized: () => {
         console.log("WASM Ready!");
 
-        postMessage({message: "READY"});
+        postMessage({ message: "READY" });
 
 
 
@@ -30,21 +29,19 @@ declare var Module: Chip8Module;
 };
 
 
-
-
 importScripts('/chip8emulator/wasm_output.js');
-function executedOpcode(opcode : number, pc : number, dt: number, st: number, I: number) {
+function executedOpcode(opcode: number, pc: number, dt: number, st: number, I: number) {
     let registers_ptr = Module._get_registers_ptr();
-    let registers = [].slice.call(Module.HEAPU8.slice(registers_ptr, registers_ptr+16))
-    self.postMessage({"message" : "OPCODE", registers: registers, opcode: opcode, pc: pc, dt: dt, st: st, I: I})
+    let registers = [].slice.call(Module.HEAPU8.slice(registers_ptr, registers_ptr + 16))
+    self.postMessage({ "message": "OPCODE", registers: registers, opcode: opcode, pc: pc, dt: dt, st: st, I: I })
 }
 
-(self as any).executedOpcode = executedOpcode;  
+(self as any).executedOpcode = executedOpcode;
 
 
 
 let chipAddr: number = 0;
-self.onmessage = (e ) => {
+self.onmessage = (e) => {
     switch (e.data.message) {
         case "RUN_CHIP":
             console.log("RUN")
@@ -52,7 +49,7 @@ self.onmessage = (e ) => {
             break
         case "LOAD_ROM":
             load_rom(e.data.rom_name);
-            break;                     
+            break;
         case "LOAD_ROM_DIRECTLY":
             load_rom_directly(e.data.rom_data, e.data.rom_size);
             break;
@@ -62,72 +59,73 @@ self.onmessage = (e ) => {
         case "KEY_UP":
             Module._set_key(e.data.key, 0)
             break;
-        default: 
+        default:
             console.log("AFG: ", e.data.message);
     }
 }
-async function load_rom_directly(rom_data : Uint8Array, rom_size : number) { 
+async function load_rom_directly(rom_data: Uint8Array, rom_size: number) {
     const chipPtr = Module._get_chip_ptr();
     console.log(rom_data)
-    console.log("before init", Module.HEAPU8.slice(chipPtr + 512,chipPtr + 4096-512));
+    console.log("before init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
     Module._chip8_init(chipPtr);
-    console.log("after init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096-512));
+    console.log("after init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
-     const ptr = Module._malloc(rom_size); // stworzenie przestrzeni na rom
+    const ptr = Module._calloc(rom_size / 8, 8); // stworzenie przestrzeni na rom
     Module.HEAPU8.set(rom_data, ptr); // uzycie pamieci
     Module._load_rom_wasm(rom_size, ptr);
     Module._free(ptr);
-    console.log("aftr rom ", Module.HEAPU8.slice(chipPtr + 512,chipPtr +  4096-512));
+    console.log("aftr rom ", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
 }
 
-async function load_rom(rom_name : string) {
+async function load_rom(rom_name: string) {
     rom_name = rom_name + ".ch8";
-    const rom = await fetch(`/roms/${rom_name}` );
+    const rom = await fetch(`/roms/${rom_name}`);
     const buffer = (await rom.arrayBuffer())
     const rom_size = await buffer.byteLength;
     const rom_data = new Uint8Array(buffer);
     const chipPtr = Module._get_chip_ptr();
     console.log(rom_data)
-    console.log("before init", Module.HEAPU8.slice(chipPtr + 512,chipPtr + 4096-512));
+    console.log("before init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
     Module._chip8_init(chipPtr);
-    console.log("after init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096-512));
+    console.log("after init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
-     const ptr = Module._malloc(rom_size); // stworzenie przestrzeni na rom
-    Module.HEAPU8.set(rom_data, ptr); // uzycie pamieci
+    const ptr = Module._malloc(rom_size); // stworzenie przestrzeni na rom
+
+    Module.HEAPU8.set(rom_data, ptr);
     Module._load_rom_wasm(rom_size, ptr);
     Module._free(ptr);
-    console.log("aftr rom ", Module.HEAPU8.slice(chipPtr + 512,chipPtr +  4096-512));
-
-    
-
-    
+    console.log("aftr rom ", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
 
-    
-        
+
+
+
+
+
+
 
 }
 
 function run_chip() {
-        chipAddr = Module._get_chip_ptr();
-        
-        
-        setInterval(() => {
-            Module._chip8_tick();
-            const chipPtr = Module._get_chip_ptr();
-            const renderFlag = Module.HEAPU8[chipPtr + 6218];
-            
+    chipAddr = Module._get_chip_ptr();
 
 
-            if (renderFlag === 1) {
-                const gfxData = new Uint8Array(Module.HEAPU8.buffer, chipAddr + 4118, 2048);
-                const frame = new Uint8Array(gfxData);
+    setInterval(() => {
+        Module._chip8_tick();
+        const chipPtr = Module._get_chip_ptr();
+        const renderFlag = Module.HEAPU8[chipPtr + 6218];
 
-                
-                self.postMessage({ message: 'RENDER', pixels: frame }, [frame.buffer]);
-            }
-        }, 1000 / 60);
+
+
+        if (renderFlag === 1) {
+            const gfxData = new Uint8Array(Module.HEAPU8.buffer, chipAddr + 4118, 2048);
+            const frame = new Uint8Array(gfxData);
+
+
+            self.postMessage({ message: 'RENDER', pixels: frame }, [frame.buffer]);
+        }
+    }, 1000 / 60);
 }

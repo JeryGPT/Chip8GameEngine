@@ -51,3 +51,8 @@ export function createNewProject(name: string, id: string = name + Date.now() / 
   localStorage.setItem(projectKey(id), JSON.stringify(newProject));
   return id;
 }
+
+export function getSprites(project_id: string): ISprite[] {
+  if (!doesProjectExist(project_id)) return [];
+  return Object.values(JSON.parse(localStorage.getItem(projectKey(project_id)) ?? "{sprites : {}}").sprites);
+}

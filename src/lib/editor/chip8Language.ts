@@ -63,7 +63,7 @@ export function registerChip8Language(monaco: Monaco) {
     provideCompletionItems: (model, position) => {
       const lineContent = model.getLineContent(position.lineNumber);
       const textBeforeCursor = lineContent.substring(0, position.column - 1);
-      
+
       // Get the word under the cursor to allow precise replacement
       const word = model.getWordUntilPosition(position);
       const range = {
@@ -124,7 +124,7 @@ export function registerChip8Language(monaco: Monaco) {
       }
 
       // Default suggestions when not accessing a namespace path:
-      
+
       // 3c. Default Instruction suggestions
       Object.entries(instructions).forEach(([opcode, variants]) => {
         variants.forEach(variant => {
