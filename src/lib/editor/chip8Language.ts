@@ -26,6 +26,37 @@ function getSpritePreview(dataStr: string): string {
   }
 }
 
+
+function getObjectSuggestions(
+  obj: any,
+  range: any,
+  monaco: Monaco,
+  path = "project"
+): any[] {
+  if (obj === null || typeof obj !== "object") {
+    return [];
+  }
+
+  return Object.entries(obj).map(([key, value]) => {
+    const isObject = value !== null && typeof value === "object";
+
+    return {
+      label: key,
+      kind: isObject
+        ? monaco.languages.CompletionItemKind.Folder
+        : monaco.languages.CompletionItemKind.Field,
+      insertText: key,
+      range,
+      detail: `${path}.${key}`,
+      documentation: {
+        value: isObject
+          ? `Project property: ${path}.${key}`
+          : `Value: ${String(value)}`
+      }
+    };
+  });
+}
+
 export function registerChip8Language(monaco: Monaco) {
   // Prevent duplicate registration
   if (monaco.languages.getLanguages().some((lang) => lang.id === 'chip8')) {
@@ -88,39 +119,42 @@ export function registerChip8Language(monaco: Monaco) {
       const pathMatch = textBeforeCursor.match(/(project(?:\.\w+)*)\.(\w*)$/);
 
       if (pathMatch) {
-        const pathPrefix = pathMatch[1]; // e.g. "project" or "project.sprites"
+        const pathPrefix = pathMatch[1];
+        const project = getProject(getActiveProjectId());
 
-        if (pathPrefix === 'project') {
-          // Suggest ONLY "sprites" when accessing project
-          suggestions.push({
-            label: 'sprites',
-            kind: monaco.languages.CompletionItemKind.Folder,
-            insertText: 'sprites.',
-            range: range,
-            detail: 'Project Sprites Directory'
-          });
-        } else if (pathPrefix === 'project.sprites') {
-          // Suggest ONLY sprite names when accessing project.sprites
-          const project = getProject(getActiveProjectId());
-          if (project?.sprites) {
-            Object.entries(project.sprites).forEach(([name, sprite]) => {
-              const previewGrid = getSpritePreview(sprite.data);
-              suggestions.push({
-                label: name,
-                kind: monaco.languages.CompletionItemKind.Field,
-                insertText: name,
-                range: range,
-                detail: `Sprite: ${name}`,
-                documentation: {
-                  value: `**Description:** ${sprite.description || 'None'}\n\n**Visual Preview:**\n\`\`\`text\n${previewGrid}\n\`\`\``
-                }
-              });
-            });
-          }
+        if (!project) {
+          return { suggestions: [] };
         }
 
-        // Return early so we don't display unrelated opcodes/registers when matching namespace paths
-        return { suggestions };
+        // Resolve the object represented by the typed path.
+        let current: any = project;
+        const keys = pathPrefix.split(".").slice(1);
+
+        for (const key of keys) {
+          if (
+            current === null ||
+            typeof current !== "object" ||
+            !Object.prototype.hasOwnProperty.call(current, key)
+          ) {
+            current = undefined;
+            break;
+          }
+
+          current = current[key];
+        }
+
+        if (current !== undefined) {
+          return {
+            suggestions: getObjectSuggestions(
+              current,
+              range,
+              monaco,
+              pathPrefix
+            )
+          };
+        }
+
+        return { suggestions: [] };
       }
 
       // Default suggestions when not accessing a namespace path:

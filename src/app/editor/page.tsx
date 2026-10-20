@@ -8,8 +8,11 @@ import { compileCode } from "@/lib/interpreter/assembler";
 import { ArrowDown, ArrowUp, Maximize, TriangleRight } from "lucide-react";
 import NavBar from "@/components/NavBar";
 import { env } from "process";
-import { createNewProject, getProject, saveProject, getAllProjectIds, saveSprite, getSprites } from "@/lib/projects_manager/manageEnv";
+import { createNewProject, getProject, saveProject, getAllProjectIds, editSprite, saveSprite, getSprites, deleteSprite } from "@/lib/projects_manager/manageEnv";
 import { registerChip8Language } from "@/lib/editor/chip8Language";
+import { ISpriteData } from "@/lib/projects_manager/types/project";
+import { ProjectProvider, useProjectContext } from "@/contexts/ProjectContext";
+
   interface ISystemState  {
     "pc" : number,
     "registers" : number[],
@@ -17,11 +20,20 @@ import { registerChip8Language } from "@/lib/editor/chip8Language";
     "sound_timer" : number,
     "I" : number
   }
-export default function Home() {
+
+export default function Page() {
+  return (
+    <ProjectProvider>
+      <Home />
+    </ProjectProvider>
+  )
+}
+export function Home() {
   const workerRef = useRef<Worker | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const screenRef = useRef<HTMLCanvasElement | null>(null);
   const opcodesTextRef = useRef<HTMLParagraphElement | null>(null);
+  const {logs, setLogs} = useProjectContext();
   const [lastOpcodes, setLastOpcodes] = useState<Array<string>>([])
   const monaco = useMonaco();
 
@@ -35,7 +47,6 @@ export default function Home() {
   interface Itab {
     id: string,
     name: string,
-    component: FC<any>
   }
 
   const TABS : Itab[] =  [
@@ -70,7 +81,7 @@ JP load_sprite;
 
 main:
     CLS;
-    DRW V5, V6, 8;
+    DRW V5, V6, project.sprites.character.length;
     LD V15, K;
     JP handle_movement;
 
@@ -91,7 +102,7 @@ load_sprite:
 
 
 sprite:
-    DB 0x70, 0x70, 0x20, 0x70, 0xA8, 0x20, 0x50, 0x50;
+    DB project.sprites.character;
 
 `
   const [userCode, setUserCode] = useState<string>(DEFAULT_CODE);
@@ -202,18 +213,22 @@ sprite:
 
   
   function handleRunCode() {
-    const rom = compileCode(userCode);
-    console.log("RON: " , rom)
-    if (!rom || rom.romSize === 0) return;
-    
-    workerRef.current?.postMessage({
-      message: "LOAD_ROM_DIRECTLY", 
-      rom_data: rom.romData, 
-      rom_size: rom.romSize
-    });
+      const compiled = compileCode(userCode);
+      setLogs([]);
+      if (!compiled.success) {
+        compiled.diagnostics.forEach(d => {
+          setLogs(prev => [...prev, d.severity.toUpperCase() + ": " + d.message + (d.line ? " (line: " + d.line + ")" : "")]);
+        });
+      }else{
+        workerRef.current?.postMessage({
+          message: "LOAD_ROM_DIRECTLY", 
+          rom_data: compiled.romData, 
+          rom_size: compiled.romSize
+        });
+        setLogs(prev => [...prev, "ROM loaded successfully."]);
+      }
   }
   return (
-
     <div className="flex flex-col min-h-screen w-full bg-zinc-300 font-sans dark:bg-black">
 
       <div className="flex h-full flex-row">
@@ -237,7 +252,7 @@ sprite:
                 )
               })}
             </div>
-            <div>
+            <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
               <tab.component
                 lastOpcodes={lastOpcodes}
                 systemState={systemState}
@@ -257,9 +272,12 @@ sprite:
 }
 
 function PreviewTab({lastOpcodes, screenRef, systemState, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, systemState: ISystemState}) {
+  const {logs, setLogs} = useProjectContext();
+
   return (
-    <section>
-    <div className="flex flex-row w-full flex-1">
+    <section className="w-full h-full min-h-0 min-w-0 overflow-hidden flex flex-col bg-zinc-900">
+
+    <div className="flex flex-row w-full shrink-0">
               <div className="flex flex-col">
                 <div className="w-[30vw] bg-zinc-900 border-x border-white/15">
                   <div className="flex flex-row h-8 items-center px-2">
@@ -319,14 +337,26 @@ function PreviewTab({lastOpcodes, screenRef, systemState, } : {lastOpcodes: stri
                 </div>
               </div>
             </div>
+
+            <div className="p-4 pb-8 h-full">
+              <p className="text-sm font-semibold">Console</p>
+
+              <div className="bg-black/20 p-2 rounded border border-white/20 min-h-0 h-full min-w-0 flex flex-col overflow-y-auto">
+                {
+                  logs.map((log, i) => <p key={i} className={log.toLowerCase().includes("error") ? "text-red-500" : "text-white"}>{log}</p>)
+                }
+              </div>
+            </div>
         </section>
   );
 }
 
+
+
 function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, systemState: ISystemState}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [spriteHeight, setSpriteHeight] = useState<number>(15);
-  const [spriteData, setSpriteData] = useState<boolean[]>(new Array(15*8).fill(0));
+  const {spriteData, setSpriteData} = useProjectContext();
   const [isMouseDown, setIsMouseDown] = useState<boolean>(false)
   const [lastChangedI, setLastChangedI] = useState<number | null>(null)
   const [hexText, setHexText] = useState<string>("")
@@ -335,6 +365,8 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
 
   const WIDTH = 8;
   const HEIGHT = 15;
+
+
 
   function drawGrid() {
     const canvas = canvasRef.current;
@@ -366,19 +398,13 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
     return cutHexData(hexData.slice(0, -1))
   }
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    
-    if (canvas === null) return;
-    const ctx = canvas.getContext("2d");
-    const pixelWidth = canvas.width / WIDTH;
-    const pixelHeight = canvas.height / HEIGHT;
-    let hexData = [] // 8 hexes
+  function boolToHex(boolArr: boolean[]) {
+    const hexData = [] // 8 hexes
 
     for ( let i = 0; i < HEIGHT; i ++) {
       let byte = 0
       for (let bit = 0; bit < 8; bit ++ ) {
-        if (spriteData[i * 8 + bit]) {
+        if (boolArr[i * 8 + bit]) {
           byte |= (1 << bit)
           
         }
@@ -389,8 +415,17 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
 
     }
     
+    return cutHexData(hexData)
+  }
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
     
-    hexData = cutHexData(hexData)
+    if (canvas === null) return;
+    const ctx = canvas.getContext("2d");
+    const pixelWidth = canvas.width / WIDTH;
+    const pixelHeight = canvas.height / HEIGHT;
+    const hexData = boolToHex(spriteData)
 
     for (let i = 0; i < spriteData.length; i++) {
       ctx.fillStyle = "red";
@@ -424,8 +459,8 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
     const pixelHeight = canvas.height / HEIGHT;
     console.log(`PIXE: x: ${Math.floor(x/pixelWidth)} ; y: ${Math.floor(y/pixelHeight)}`)
     if (isMouseDown) {
-      let calc_x = Math.floor(x/pixelWidth) 
-      let calc_y = Math.floor(y/pixelHeight) 
+      const calc_x = Math.floor(x/pixelWidth) 
+      const calc_y = Math.floor(y/pixelHeight) 
       
       const new_arr = [...spriteData] ;
       const idx = calc_x + calc_y * WIDTH
@@ -437,7 +472,7 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
     }
   }
 
-  function handleMouse(e, isDown : boolean) {
+  function handleMouse(e : React.MouseEvent<HTMLCanvasElement>, isDown : boolean) {
     setIsMouseDown(isDown);
     if (!isDown) return
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -468,15 +503,11 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
     drawGrid(canvasRef.current)
   }, [])
 
-  function saveSprite() {
-    const spriteName = spriteNameRef.current?.value;
-    const spriteDesc = spriteDescRef.current?.value;
-    localStorage.setItem("project_env", project_env)
-  }
+
 
   return (
-      <div className="flex flex-col">
-        <div>
+      <div className="flex flex-col h-full w-full bg-zinc-900">
+        <div className="shrink-0">
         <div className="flex flex-row gap-4 bg-zinc-900 p-4 border-l border-white/15">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
@@ -510,14 +541,29 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
                 <span className="text-sm font-semibold">Sprite Description</span>
                 <input ref={spriteDescRef} placeholder="What is this sprite?" className="w-full h-9 px-2 bg-zinc-950 text-zinc-200 border border-white/15 rounded-[4px] outline-none focus:border-white duration-250 ease-in-out" />
               </label>
-              <button onClick={saveSprite} className="w-full h-9 bg-white text-zinc-900 font-semibold rounded-[4px] hover:bg-white/90 active:bg-white/70 duration-250 ease-in-out">Save Sprite</button>
+              <button onClick={() => {saveSprite("123", { name: spriteNameRef.current?.value, description: spriteDescRef.current?.value, data: boolToHex(spriteData).join(", ") } as ISpriteData); this.forceUpdate()}} className="w-full h-9 bg-white text-zinc-900 font-semibold rounded-[4px] hover:bg-white/90 active:bg-white/70 duration-250 ease-in-out">Save Sprite</button>
             </div>
           </div>
 
         </div>
       </div>
-      <div>
-        d
+      <div className="h-full flex-1 bg-zinc-900 w-full">
+        {getSprites("123").map((sprite) => (
+
+          <div key={sprite.id} id={sprite.id} className="flex flex-col gap-2 p-3 bg-black/20 border border-white/15 rounded-[4px] m-2">
+            <div>
+              <p className="font-semibold">{sprite.name}</p>
+              <p className="text-sm text-zinc-400">{sprite.description}</p>
+              <p className="text-xs font-mono break-words">{sprite.data}</p>
+            </div>
+            <div>
+            <button className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onClick={() => {deleteSprite("123", sprite.id); this.forceUpdate()}}>Delete</button>
+            <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={() => loadSprite("123", sprite.id)}>Load</button>
+            <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onClick={() => editSprite("123", sprite.id)}>Edit</button>
+            </div>
+          </div>
+        ))
+        }
       </div>
     </div>
   )

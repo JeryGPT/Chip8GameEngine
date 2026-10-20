@@ -3,7 +3,7 @@ import { InstructionTokenized } from "./types/tokenizer";
 import { instructions } from "./instructions";
 import { InstructionDef } from "./types/interpreter";
 import { compileInstruction } from "./parser"
-
+import { CompileDiagnostic, CompileResult } from "./types/compiler";
 function arraysEqual(a : string[], b : string[]) {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
@@ -12,24 +12,29 @@ function arraysEqual(a : string[], b : string[]) {
   return true;
 }
 
-export function compileCode(code: string) {
-  console.log("COPILING: ", code)
+export function compileCode(code: string) : CompileResult {
+  const diagnostics : CompileDiagnostic[] = [];
   const tokenizedData = tokenizeCode(code);
   if (tokenizedData.success < 0) return {tokenizedData};
   const tokenizedInstructions: InstructionTokenized[] = tokenizedData.data
 
   const compiledInstructions : Uint8Array[] = [];
 
-  tokenizedInstructions.forEach((userInstruction, index) => {
-    
-  })
+
 
   tokenizedInstructions.forEach((userInstruction, index) => {
     const foundInstructions : InstructionDef[] = instructions[userInstruction.instructionName];
     let match : InstructionDef | undefined;
     if (foundInstructions === undefined) {
-      console.log(`Unknow instruction name "${userInstruction.instructionName}"`);
-      return
+      diagnostics.push(
+        {
+          phase: "assembler",
+          severity: "error",
+          message: `No instruction ${userInstruction.instructionName} found `,
+          line: userInstruction.line
+        }
+      );
+      return;
     }
     if (foundInstructions.length > 1) {
       match = foundInstructions.find(foundInstruction => arraysEqual(foundInstruction.requiredTypes, userInstruction.argsTypes)) 
@@ -47,6 +52,7 @@ export function compileCode(code: string) {
       compiledInstructions.push(compileInstruction(match, userInstruction.args))
     }
   }) 
+
   const totalLength = compiledInstructions.reduce((acc, curr) => acc + curr.length, 0);
   const finalROM = new Uint8Array(totalLength);
   let offset = 0;
@@ -55,6 +61,7 @@ export function compileCode(code: string) {
     offset += instructionBytes.length;
   }
   console.log("FINALLL: ", finalROM)
-  return {romSize: totalLength, romData: finalROM};
+  const success = diagnostics.filter(d => d.severity === "error").length === 0;
+  return {romSize: totalLength, romData: finalROM, diagnostics, success} ;
 
 }

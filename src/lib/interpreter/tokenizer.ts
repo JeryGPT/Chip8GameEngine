@@ -1,12 +1,14 @@
 import { getFromProject } from "./projectData";
 import { InstructionTokenized } from "./types/tokenizer";
 
+
 export function tokenizeCode(code: string) {
   const lines = code.split("\n")
   const instructions: InstructionTokenized[] = [];
   const jumpLabels: Record<string, number> = {};
-  const cleanLines: string[] = [];
+  const cleanLines: {instruction: string; line: number}[] = [];
   let currentAddr = 0x200;
+  let line = 0;
   lines.forEach((rawInstruction, idx) => {
     let instruction = rawInstruction.split(";")[0].trim();
     const matchResult = instruction.match(/project\.[\w.]+/);
@@ -23,13 +25,16 @@ export function tokenizeCode(code: string) {
     }
 
 
-    if (instruction == "") return;
+    if (instruction == "") {
+      line++;
+
+      return;
+    };
     if (instruction.endsWith(":")) {
       jumpLabels[instruction.slice(0, -1)] = currentAddr;
 
     } else {
-      if (instruction == "") return;
-      cleanLines.push(instruction);
+      cleanLines.push({instruction, line: line + 1});
       let parts = instruction.split(" ");
       const name = parts[0].toUpperCase();
       if (name === "DB") {
@@ -41,13 +46,17 @@ export function tokenizeCode(code: string) {
         currentAddr += 2;
       }
     }
+    line++;
+
   })
 
-  cleanLines.forEach((instruction) => {
+  cleanLines.forEach((cleanLine) => {
+    const { instruction, line } = cleanLine;
     if (instruction == "") return
-    const instructionData: InstructionTokenized = { instructionName: "", args: [], argsTypes: [] };
+    const instructionData: InstructionTokenized = { instructionName: "", args: [], argsTypes: [] , line: line};
     const instructionName = instruction.split(" ")[0];
     if (instructionName == "") {
+      
       return;
     }
     instructionData.instructionName = instructionName;

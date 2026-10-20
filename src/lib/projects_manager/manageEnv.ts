@@ -1,4 +1,4 @@
-import { IProject, ISprite } from "./types/project";
+import { IProject, ISprite, ISpriteData } from "./types/project";
 
 const INDEX_KEY = "chip8_projects";
 const projectKey = (id: string) => `chip8_project_${id}`;
@@ -22,13 +22,16 @@ export function getProject(project_id: string): IProject | undefined {
   return JSON.parse(localStorage.getItem(projectKey(project_id)) ?? "{}")
 }
 
-export function saveSprite(project_id: string, sprite: ISprite) {
+export function saveSprite(project_id: string, sprite: ISpriteData) {
+
   const projects = getAllProjectIds();
-  if (!projects) return;
+  const id: string = (sprite.name + Date.now() / 1000).toString();
+  if (!projects) return;  
   if (!doesProjectExist(project_id)) return;
   const project = getProject(project_id);
   if (!project) return;
-  project.sprites[sprite.name] = sprite;
+  project.sprites[sprite.name] = {...sprite, length: sprite.data.split(",").length, id: id};
+  
   saveProject(project_id, project);
 }
 
@@ -53,6 +56,37 @@ export function createNewProject(name: string, id: string = name + Date.now() / 
 }
 
 export function getSprites(project_id: string): ISprite[] {
-  if (!doesProjectExist(project_id)) return [];
-  return Object.values(JSON.parse(localStorage.getItem(projectKey(project_id)) ?? "{sprites : {}}").sprites);
+  const project = getProject(project_id);
+  if (!project) return [];
+
+  return Object.values(project.sprites);
+}
+
+export function deleteProject(project_id: string) {
+  if (!doesProjectExist(project_id)) return;
+  const all_projects = getAllProjectIds() ?? [];
+  const new_projects = all_projects.filter(p => p !== projectKey(project_id));
+  localStorage.setItem(INDEX_KEY, JSON.stringify(new_projects));
+  localStorage.removeItem(projectKey(project_id));
+}
+
+export function deleteSprite(project_id: string, sprite_id: string) {
+  if (!doesProjectExist(project_id)) return;
+
+  const project = getProject(project_id);
+  if (!project) return;
+
+    const sprite_name = Object.keys(project.sprites).find(key => project.sprites[key].id === sprite_id) || "";
+    console.log("SPRITE NAME: ", sprite_name)
+  if (!sprite_name) return;
+  delete project.sprites[sprite_name];
+  saveProject(project_id, project);
+}
+
+export function editSprite(project_id: string, sprite: ISpriteData) {
+  if (!doesProjectExist(project_id)) return;
+  const project = getProject(project_id);
+  if (!project) return;
+  project.sprites[sprite.name] = {...sprite, length: sprite.data.split(",").length};
+  saveProject(project_id, project);
 }

@@ -21,6 +21,6 @@ export function getFromProject(str: string, project_id: string) {
   console.log(currentObj)
   return {
     success: 1,
-    data: 'data' in currentObj ? currentObj.data : currentObj
+    data: typeof currentObj === "object" && 'data' in currentObj ? currentObj.data : currentObj
   }
 } 
