@@ -13,14 +13,12 @@ function arraysEqual(a : string[], b : string[]) {
 }
 
 export function compileCode(code: string) : CompileResult {
-  const diagnostics : CompileDiagnostic[] = [];
-  const tokenizedData = tokenizeCode(code);
-  if (tokenizedData.success < 0) return {tokenizedData};
-  const tokenizedInstructions: InstructionTokenized[] = tokenizedData.data
+  const {success: tokenizationSuccess, data: tokenizedData, diagnostics}  = tokenizeCode(code);
+  const tokenizedInstructions: InstructionTokenized[] = tokenizedData
 
   const compiledInstructions : Uint8Array[] = [];
 
-
+  console.log(tokenizedInstructions)
 
   tokenizedInstructions.forEach((userInstruction, index) => {
     const foundInstructions : InstructionDef[] = instructions[userInstruction.instructionName];
@@ -42,7 +40,6 @@ export function compileCode(code: string) : CompileResult {
       match = foundInstructions[0]
     }
     if (!match) {
-      console.log(`No instruction ${userInstruction.instructionName} found using argument types: ${userInstruction.argsTypes}`)
       return;
     }
     // check if the called function has it's own compilation function (for custom instructions)

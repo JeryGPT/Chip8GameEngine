@@ -1,14 +1,15 @@
 import { getFromProject } from "./projectData";
-import { InstructionTokenized } from "./types/tokenizer";
+import { InstructionTokenized, TokenizeResult } from "./types/tokenizer";
+import { CompileDiagnostic } from "./types/compiler";
 
-
-export function tokenizeCode(code: string) {
+export function tokenizeCode(code: string) : TokenizeResult {
   const lines = code.split("\n")
   const instructions: InstructionTokenized[] = [];
   const jumpLabels: Record<string, number> = {};
   const cleanLines: {instruction: string; line: number}[] = [];
   let currentAddr = 0x200;
   let line = 0;
+  const diagnostics: CompileDiagnostic[] = [];
   lines.forEach((rawInstruction, idx) => {
     let instruction = rawInstruction.split(";")[0].trim();
     const matchResult = instruction.match(/project\.[\w.]+/);
@@ -101,6 +102,13 @@ export function tokenizeCode(code: string) {
 
         instructionData.args.push(Number(arg));
         instructionData.argsTypes.push("NUMBER")
+      } else {
+        diagnostics.push({
+          phase: "tokenizer",
+          severity: "error",
+          message: `Unknown argument "${arg}" for instruction ${instructionName}`,
+          line: line
+        });
       }
 
     })
@@ -108,5 +116,5 @@ export function tokenizeCode(code: string) {
     console.log(instructionData)
 
   })
-  return { success: 1, data: instructions }
+  return { success: 1, data: instructions, diagnostics } 
 }
