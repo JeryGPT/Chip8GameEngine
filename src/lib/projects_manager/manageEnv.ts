@@ -23,7 +23,7 @@ export function getProject(project_id: string): IProject | undefined {
 }
 
 export function saveSprite(project_id: string, sprite: ISpriteData) {
-
+  if (!sprite.name || !sprite.data) return;
   const projects = getAllProjectIds();
   const id: string = (sprite.name + Date.now() / 1000).toString();
   if (!projects) return;  
@@ -77,7 +77,6 @@ export function deleteSprite(project_id: string, sprite_id: string) {
   if (!project) return;
 
     const sprite_name = Object.keys(project.sprites).find(key => project.sprites[key].id === sprite_id) || "";
-    console.log("SPRITE NAME: ", sprite_name)
   if (!sprite_name) return;
   delete project.sprites[sprite_name];
   saveProject(project_id, project);
@@ -87,6 +86,6 @@ export function editSprite(project_id: string, sprite: ISpriteData) {
   if (!doesProjectExist(project_id)) return;
   const project = getProject(project_id);
   if (!project) return;
-  project.sprites[sprite.name] = {...sprite, length: sprite.data.split(",").length};
+  project.sprites[sprite.name] = {...sprite, length: sprite.data.split(",").length, id: project.sprites[sprite.name]?.id ?? (sprite.name + Date.now() / 1000).toString()};
   saveProject(project_id, project);
 }

@@ -1,4 +1,5 @@
 import { Monaco } from '@monaco-editor/react';
+import type { editor, Position } from 'monaco-editor';
 import { getProject } from '../projects_manager/manageEnv';
 import { instructions } from '../interpreter/instructions';
 
@@ -59,7 +60,7 @@ function getObjectSuggestions(
 
 export function registerChip8Language(monaco: Monaco) {
   // Prevent duplicate registration
-  if (monaco.languages.getLanguages().some((lang) => lang.id === 'chip8')) {
+  if (monaco.languages.getLanguages().some((lang: { id: string }) => lang.id === 'chip8')) {
     return;
   }
 
@@ -91,7 +92,7 @@ export function registerChip8Language(monaco: Monaco) {
   // 3. IntelliSense suggestions
   monaco.languages.registerCompletionItemProvider('chip8', {
     triggerCharacters: ['.'],
-    provideCompletionItems: (model, position) => {
+    provideCompletionItems: (model: editor.ITextModel, position: Position) => {
       const lineContent = model.getLineContent(position.lineNumber);
       const textBeforeCursor = lineContent.substring(0, position.column - 1);
 

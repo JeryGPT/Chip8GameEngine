@@ -21,8 +21,7 @@ export function tokenizeCode(code: string) : TokenizeResult {
 
       const replacementValue = dataFromPath?.success === 1 ? dataFromPath.data : "";
 
-      instruction = instruction.replace(projectPath, replacementValue);
-      console.log("DAFGESOIUP: ", instruction)
+      instruction = instruction.replace(projectPath, String(replacementValue));
     }
 
 
@@ -41,7 +40,6 @@ export function tokenizeCode(code: string) : TokenizeResult {
       if (name === "DB") {
         // DB directive takes 1 byte per argument element
         const elementCount = instruction.replace(name, "").trim().replace(" ", "").split(",").length;
-        console.log("ELEMENT COUNTL ", elementCount)
         currentAddr += elementCount;
       } else {
         currentAddr += 2;
@@ -113,7 +111,6 @@ export function tokenizeCode(code: string) : TokenizeResult {
 
     })
     instructions.push(instructionData);
-    console.log(instructionData)
 
   })
   return { success: 1, data: instructions, diagnostics } 

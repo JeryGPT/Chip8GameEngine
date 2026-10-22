@@ -18,7 +18,6 @@ export function compileCode(code: string) : CompileResult {
 
   const compiledInstructions : Uint8Array[] = [];
 
-  console.log(tokenizedInstructions)
 
   tokenizedInstructions.forEach((userInstruction, index) => {
     const foundInstructions : InstructionDef[] = instructions[userInstruction.instructionName];
@@ -57,7 +56,6 @@ export function compileCode(code: string) : CompileResult {
     finalROM.set(instructionBytes, offset);
     offset += instructionBytes.length;
   }
-  console.log("FINALLL: ", finalROM)
   const success = diagnostics.filter(d => d.severity === "error").length === 0;
   return {romSize: totalLength, romData: finalROM, diagnostics, success} ;
 

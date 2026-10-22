@@ -16,7 +16,7 @@ export const instructions: Record<string, InstructionDef[]> = {
   "RET": [{
     template: 0x00EE,
     argsLayout: [],
-    refquiredTypes: [],
+    requiredTypes: [],
     helper: "Return from a subroutine."
   }],
   "JP": [

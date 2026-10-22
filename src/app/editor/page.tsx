@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image";
-import { ButtonHTMLAttributes, useEffect, useRef, useState, FC } from "react";
+import { ButtonHTMLAttributes, useEffect, useRef, useState, FC, RefObject } from "react";
 import Editor, { DiffEditor, useMonaco, loader } from '@monaco-editor/react';
 import { useSearchParams } from "next/navigation";
 import { compileCode } from "@/lib/interpreter/assembler";
@@ -10,7 +10,7 @@ import NavBar from "@/components/NavBar";
 import { env } from "process";
 import { createNewProject, getProject, saveProject, getAllProjectIds, editSprite, saveSprite, getSprites, deleteSprite } from "@/lib/projects_manager/manageEnv";
 import { registerChip8Language } from "@/lib/editor/chip8Language";
-import { ISpriteData } from "@/lib/projects_manager/types/project";
+import { ISprite, ISpriteData } from "@/lib/projects_manager/types/project";
 import { ProjectProvider, useProjectContext } from "@/contexts/ProjectContext";
 
   interface ISystemState  {
@@ -47,6 +47,7 @@ export function Home() {
   interface Itab {
     id: string,
     name: string,
+    component: FC<{lastOpcodes: string[], screenRef: RefObject<HTMLCanvasElement | null>, systemState: ISystemState}>;
   }
 
   const TABS : Itab[] =  [
@@ -202,7 +203,6 @@ sprite:
     monitor_keys(worker);
     const project_id = createNewProject("Project 1", "123");
     saveSprite(project_id , {
-      id: "123",
       name: "character",
       description: "character",
       data: "0x70, 0x70, 0x20, 0x70, 0xA8, 0x20, 0x50, 0x50"
@@ -240,7 +240,7 @@ sprite:
             <p className="py-2 font-semibold pl-3">main.ch8</p>
             <button ref={buttonRef} className="flex items-center border h-[20px] border-white/15 border-[1px] p-4 text-zinc-200 hover:bg-white duration-250 ease-in-out font-semibold hover:text-zinc-900  h-10 rounded-[4px]" onClick={handleRunCode}> RUN ►</button>
             </div>
-            <Editor height="100%" className="h-full" width="100%" theme="vs-dark" defaultLanguage="chip8" defaultValue={DEFAULT_CODE} onChange={(e) => {setUserCode(e || ""); console.log(userCode)}} />
+            <Editor height="100%" className="h-full" width="100%" theme="vs-dark" defaultLanguage="chip8" defaultValue={DEFAULT_CODE} onChange={(e) => setUserCode(e || "")} />
           </div>
           <div className="flex flex-col w-full h-full">
             <div className="w-full h-10 border-l gap-x-4 child:border flex items-center px-4 border-b border-white/15 bg-zinc-900" id="bar">
@@ -271,7 +271,8 @@ sprite:
   );
 }
 
-function PreviewTab({lastOpcodes, screenRef, systemState, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, systemState: ISystemState}) {
+function PreviewTab({lastOpcodes, screenRef, systemState } 
+  : {lastOpcodes: string[], screenRef: RefObject<HTMLCanvasElement | null>, systemState: ISystemState}) {
   const {logs, setLogs} = useProjectContext();
 
   return (
@@ -353,19 +354,22 @@ function PreviewTab({lastOpcodes, screenRef, systemState, } : {lastOpcodes: stri
 
 
 
-function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: string[], screenRef: HTMLCanvasElement, systemState: ISystemState}) {
+function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: string[], screenRef: RefObject<HTMLCanvasElement | null>, systemState: ISystemState}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [spriteHeight, setSpriteHeight] = useState<number>(15);
   const {spriteData, setSpriteData} = useProjectContext();
   const [isMouseDown, setIsMouseDown] = useState<boolean>(false)
   const [lastChangedI, setLastChangedI] = useState<number | null>(null)
   const [hexText, setHexText] = useState<string>("")
+  const [sprites, setSprites] = useState<ISprite[]>(() => getSprites("123"))
   const spriteNameRef = useRef<HTMLInputElement | null>(null) 
   const spriteDescRef = useRef<HTMLInputElement | null>(null) 
 
   const WIDTH = 8;
   const HEIGHT = 15;
-
+  const refreshSprites = () => {
+    setSprites(getSprites("123"));
+  }
 
 
   function drawGrid() {
@@ -375,7 +379,7 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
     const ctx = canvas.getContext("2d");
     const pixelWidth = canvas.width / WIDTH;
     const pixelHeight = canvas.height / HEIGHT;
-    
+    if (ctx === null) return;
     ctx.fillStyle = "white";
     ctx?.beginPath();
     const PIXEL_SIZE = 4
@@ -391,8 +395,8 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
       ctx?.stroke();
     }
   }
-  function cutHexData(hexData) {
-    if (hexData.length === 0 || hexData.at(-1) > 0) {
+  function cutHexData(hexData : string[]) {
+    if (hexData.length === 0 || Number(hexData.at(-1)) > 0) {
       return hexData;
     }
     return cutHexData(hexData.slice(0, -1))
@@ -423,6 +427,7 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
     
     if (canvas === null) return;
     const ctx = canvas.getContext("2d");
+    if (ctx === null) return;
     const pixelWidth = canvas.width / WIDTH;
     const pixelHeight = canvas.height / HEIGHT;
     const hexData = boolToHex(spriteData)
@@ -446,7 +451,8 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
     
   }, [spriteData])
 
-  function handleMouseMove(e) {
+  function handleMouseMove(e : React.MouseEvent<HTMLCanvasElement>) {
+    if (canvasRef.current === null) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left + 1;
     const y = e.clientY - rect.top + 1;
@@ -457,7 +463,6 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
     const ctx = canvas.getContext("2d");
     const pixelWidth = canvas.width / WIDTH;
     const pixelHeight = canvas.height / HEIGHT;
-    console.log(`PIXE: x: ${Math.floor(x/pixelWidth)} ; y: ${Math.floor(y/pixelHeight)}`)
     if (isMouseDown) {
       const calc_x = Math.floor(x/pixelWidth) 
       const calc_y = Math.floor(y/pixelHeight) 
@@ -468,7 +473,6 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
       new_arr[idx] = !new_arr[idx];
       setLastChangedI(idx)
       setSpriteData(new_arr)
-      console.log("DRAW", calc_x, calc_y)
     }
   }
 
@@ -500,7 +504,7 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
   }
   
   useEffect(() => {
-    drawGrid(canvasRef.current)
+    drawGrid()
   }, [])
 
 
@@ -541,14 +545,14 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
                 <span className="text-sm font-semibold">Sprite Description</span>
                 <input ref={spriteDescRef} placeholder="What is this sprite?" className="w-full h-9 px-2 bg-zinc-950 text-zinc-200 border border-white/15 rounded-[4px] outline-none focus:border-white duration-250 ease-in-out" />
               </label>
-              <button onClick={() => {saveSprite("123", { name: spriteNameRef.current?.value, description: spriteDescRef.current?.value, data: boolToHex(spriteData).join(", ") } as ISpriteData); this.forceUpdate()}} className="w-full h-9 bg-white text-zinc-900 font-semibold rounded-[4px] hover:bg-white/90 active:bg-white/70 duration-250 ease-in-out">Save Sprite</button>
+              <button onClick={() => {saveSprite("123", { name: spriteNameRef.current?.value, description: spriteDescRef.current?.value, data: boolToHex(spriteData).join(", ") } as ISpriteData); refreshSprites()}} className="w-full h-9 bg-white text-zinc-900 font-semibold rounded-[4px] hover:bg-white/90 active:bg-white/70 duration-250 ease-in-out">Save Sprite</button>
             </div>
           </div>
 
         </div>
       </div>
       <div className="h-full flex-1 bg-zinc-900 w-full">
-        {getSprites("123").map((sprite) => (
+        {sprites.map((sprite) => (
 
           <div key={sprite.id} id={sprite.id} className="flex flex-col gap-2 p-3 bg-black/20 border border-white/15 rounded-[4px] m-2">
             <div>
@@ -557,9 +561,9 @@ function SpritesEditor({lastOpcodes, screenRef, systemState, } : {lastOpcodes: s
               <p className="text-xs font-mono break-words">{sprite.data}</p>
             </div>
             <div>
-            <button className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onClick={() => {deleteSprite("123", sprite.id); this.forceUpdate()}}>Delete</button>
-            <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={() => loadSprite("123", sprite.id)}>Load</button>
-            <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onClick={() => editSprite("123", sprite.id)}>Edit</button>
+            <button className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" onClick={() => {deleteSprite("123", sprite.id); refreshSprites()}}>Delete</button>
+            <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={() =>{}}>Load</button>
+            <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600" onClick={() => {editSprite("123", { ...sprite }); refreshSprites()}}>Edit</button>
             </div>
           </div>
         ))

@@ -12,14 +12,12 @@ interface Chip8Module extends EmscriptenModule {
     _set_register(a: number, b: number): void;
     HEAPU8: Uint8Array;
 }
-console.log("Test")
 
 declare var Module: Chip8Module;
 
 (self as any).Module = {
     locateFile: (path: string) => path.endsWith('.wasm') ? '/chip8emulator/wasm_output.wasm' : path,
     onRuntimeInitialized: () => {
-        console.log("WASM Ready!");
 
         postMessage({ message: "READY" });
 
@@ -44,7 +42,6 @@ let chipAddr: number = 0;
 self.onmessage = (e) => {
     switch (e.data.message) {
         case "RUN_CHIP":
-            console.log("RUN")
             run_chip();
             break
         case "LOAD_ROM":
@@ -59,23 +56,17 @@ self.onmessage = (e) => {
         case "KEY_UP":
             Module._set_key(e.data.key, 0)
             break;
-        default:
-            console.log("AFG: ", e.data.message);
     }
 }
 async function load_rom_directly(rom_data: Uint8Array, rom_size: number) {
     const chipPtr = Module._get_chip_ptr();
-    console.log(rom_data)
-    console.log("before init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
     Module._chip8_init(chipPtr);
-    console.log("after init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
-    const ptr = Module._calloc(rom_size / 8, 8); // stworzenie przestrzeni na rom
+    const ptr = Module._malloc(rom_size); // stworzenie przestrzeni na rom
     Module.HEAPU8.set(rom_data, ptr); // uzycie pamieci
     Module._load_rom_wasm(rom_size, ptr);
     Module._free(ptr);
-    console.log("aftr rom ", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
 }
 
@@ -86,18 +77,14 @@ async function load_rom(rom_name: string) {
     const rom_size = await buffer.byteLength;
     const rom_data = new Uint8Array(buffer);
     const chipPtr = Module._get_chip_ptr();
-    console.log(rom_data)
-    console.log("before init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
     Module._chip8_init(chipPtr);
-    console.log("after init", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
     const ptr = Module._malloc(rom_size); // stworzenie przestrzeni na rom
 
     Module.HEAPU8.set(rom_data, ptr);
     Module._load_rom_wasm(rom_size, ptr);
     Module._free(ptr);
-    console.log("aftr rom ", Module.HEAPU8.slice(chipPtr + 512, chipPtr + 4096 - 512));
 
 
 
